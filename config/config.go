@@ -1,0 +1,94 @@
+package config
+
+import (
+	"fmt"
+	"os"
+)
+
+// Config
+type Config struct {
+	Server server
+	Db     database
+	Tokens tokens
+}
+
+func New() Config {
+	server := newServer()
+	db := newDatabase()
+	tokens := newTokens()
+	return Config{
+		Server: server,
+		Db:     db,
+		Tokens: tokens,
+	}
+}
+
+// server config
+type server struct {
+	host string
+	port string
+}
+
+func (s server) Addr() string {
+	return s.host + ":" + s.port
+}
+
+func newServer() server {
+	return server{
+		host: getEnv("HTTP_HOST", "localhost"),
+		port: getEnv("HTTP_PORT", "5000"),
+	}
+}
+
+// database config
+type database struct {
+	host     string
+	port     string
+	name     string
+	user     string
+	password string
+}
+
+func (d database) Addr() string {
+	uri := fmt.Sprintf("%s:%s@(%s:%s)/%s?parseTime=true", d.user, d.password, d.host, d.port, d.name)
+	return uri
+}
+
+func newDatabase() database {
+	return database{
+		host:     getEnv("DATABASE_HOST", "localhost"),
+		port:     getEnv("DATABASE_POST", "3306"),
+		name:     getEnv("DATABASE_NAME", ""),
+		user:     getEnv("DATABASE_USER", ""),
+		password: getEnv("DATABASE_PASSWORD", ""),
+	}
+}
+
+// tokens config
+type tokens struct {
+	telegram string
+	api      string
+}
+
+func (t tokens) Telegram() string {
+	return t.telegram
+}
+
+func (t tokens) Api() string {
+	return t.api
+}
+
+func newTokens() tokens {
+	return tokens{
+		telegram: getEnv("TELEGRAM_TOKEN", ""),
+		api:      getEnv("API_TOKEN", ""),
+	}
+}
+
+// helper function
+func getEnv(key string, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultValue
+}
