@@ -3,6 +3,7 @@ package tgbot
 import (
 	"context"
 	"gpt-bot/api/db"
+	"gpt-bot/utils"
 	"os"
 	"os/signal"
 
@@ -52,13 +53,23 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 		})
 		return
 	}
+
+	token, err := utils.SignJWT(int(update.Message.From.ID))
+	if err != nil {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: update.Message.Chat.ID,
+			Text:   "Error",
+		})
+		return
+	}
+
 	b.SetChatMenuButton(ctx, &bot.SetChatMenuButtonParams{
 		ChatID: update.Message.Chat.ID,
 		MenuButton: models.MenuButtonWebApp{
 			Type: "web_app",
 			Text: "Open App",
 			WebApp: models.WebAppInfo{
-				URL: tb.webAppUrl,
+				URL: tb.webAppUrl + "?" + token,
 			},
 		},
 	})
