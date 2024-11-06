@@ -1,5 +1,5 @@
 CREATE TABLE users(
-    id smallint not null,
+    id int not null,
     subscription bool default false not null,
     requests tinyint default 10 not null,
     primary key(id)
