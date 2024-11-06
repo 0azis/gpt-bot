@@ -12,6 +12,10 @@ import (
 
 type BotInterface interface {
 	Start()
+	InitHandlers()
+
+	// handlers
+	startHandler(ctx context.Context, b *bot.Bot, update *models.Update)
 }
 
 type tgBot struct {
@@ -21,9 +25,6 @@ type tgBot struct {
 }
 
 func New(token string, store db.Store, url string) (BotInterface, error) {
-	// opts := []bot.Option{
-	// 	bot.WithDefaultHandler(handler),
-	// }
 	b, err := bot.New(token)
 	return tgBot{
 		webAppUrl: url,
@@ -38,6 +39,10 @@ func (tb tgBot) Start() {
 	tb.b.Start(ctx)
 }
 
+func (tg tgBot) InitHandlers() {
+	tg.b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, tg.startHandler)
+}
+
 func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	err := tb.store.User.Create(int(update.Message.From.ID))
 	if err != nil {
@@ -45,6 +50,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 			ChatID: update.Message.Chat.ID,
 			Text:   "Error",
 		})
+		return
 	}
 	b.SetChatMenuButton(ctx, &bot.SetChatMenuButtonParams{
 		ChatID: update.Message.Chat.ID,

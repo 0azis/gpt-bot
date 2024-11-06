@@ -29,11 +29,12 @@ func main() {
 	}
 
 	// init and start bot
-	bot, err := tgbot.New(config.Tokens.Telegram())
+	bot, err := tgbot.New(config.Tokens.Telegram(), store, config.WebAppUrl)
 	if err != nil {
 		slog.Error("bot running failed")
 		return
 	}
+	bot.InitHandlers()
 	go bot.Start()
 
 	// init and http server
