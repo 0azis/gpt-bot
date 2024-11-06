@@ -3,7 +3,7 @@ package db
 import "github.com/jmoiron/sqlx"
 
 type userRepository interface {
-	Create() error
+	Create(userID int) error
 }
 
 type user struct {
@@ -11,6 +11,7 @@ type user struct {
 }
 
 // Create return nil (test)
-func (u user) Create() error {
-	return nil
+func (u user) Create(userID int) error {
+	_, err := u.db.Query(`insert into users (id) values (?) on duplicate key update id = id`, userID)
+	return err
 }
