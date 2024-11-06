@@ -18,11 +18,6 @@ type tokenPayload struct {
 	expirationTime int64
 }
 
-// type JWT struct {
-// 	Access  string
-// 	Refresh string
-// }
-
 func SignJWT(userId int) (string, error) {
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		// Создаем payload структуру
@@ -31,31 +26,6 @@ func SignJWT(userId int) (string, error) {
 	}).SignedString(SECRET_HASH)
 	return token, err
 }
-
-// func createRefreshToken(userId int) (string, error) {
-// 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-// 		// Создаем payload структуру
-// 		"id": userId,                                        // UserId для идентификации пользователя
-// 		"e":  int64(time.Now().Unix()) + TOKEN_TIME_REFRESH, // expiredTime для безопасности
-// 	}).SignedString(SECRET_HASH)
-// 	return token, err
-// }
-
-// func NewJWT(userID int) (JWT, error) {
-// 	var jwtResult JWT
-// 	accessToken, err := createAccessToken(userID)
-// 	if err != nil {
-// 		return jwtResult, err
-// 	}
-// 	refrestToken, err := createRefreshToken(userID)
-// 	if err != nil {
-// 		return jwtResult, err
-// 	}
-
-// 	jwtResult.Access = accessToken
-// 	jwtResult.Refresh = refrestToken
-// 	return jwtResult, nil
-// }
 
 func GetIdentity(token string) (tokenPayload, error) {
 	var jwtPayload tokenPayload
@@ -76,7 +46,3 @@ func GetIdentity(token string) (tokenPayload, error) {
 
 	return jwtPayload, nil
 }
-
-// func IsValid(payload tokenPayload) bool {
-// 	return payload.expirationTime > time.Now().Unix()
-// }

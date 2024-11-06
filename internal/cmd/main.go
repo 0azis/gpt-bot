@@ -1,9 +1,9 @@
 package main
 
 import (
-	"gpt-bot/api/db"
-	"gpt-bot/api/server"
 	"gpt-bot/config"
+	"gpt-bot/internal/db"
+	"gpt-bot/internal/server"
 	"gpt-bot/tgbot"
 	"log/slog"
 
@@ -39,6 +39,10 @@ func main() {
 
 	// init and http server
 	e := echo.New()
+
+	// plug middlewares
+	e.Use(server.AuthMiddleware)
+
 	// init routes to it
 	server.InitRoutes(e, store)
 
