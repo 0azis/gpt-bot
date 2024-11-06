@@ -7,9 +7,10 @@ import (
 
 // Config
 type Config struct {
-	Server server
-	Db     database
-	Tokens tokens
+	Server    server
+	Db        database
+	Tokens    tokens
+	WebAppUrl string
 }
 
 func New() Config {
@@ -17,9 +18,10 @@ func New() Config {
 	db := newDatabase()
 	tokens := newTokens()
 	return Config{
-		Server: server,
-		Db:     db,
-		Tokens: tokens,
+		Server:    server,
+		Db:        db,
+		Tokens:    tokens,
+		WebAppUrl: getEnv("WEB_APP_URL", ""),
 	}
 }
 
