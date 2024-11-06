@@ -18,5 +18,5 @@ func userRoutes(api *echo.Group, store db.Store) {
 	user := api.Group("/users") // basic user route
 	controller := controllers.NewUserControllers(store)
 
-	user.GET("", controller.Hello)
+	user.GET("", controller.GetUser)
 }
