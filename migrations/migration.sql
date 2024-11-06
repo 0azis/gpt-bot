@@ -2,6 +2,7 @@ CREATE TABLE users(
     id int not null,
     subscription bool default false not null,
     requests tinyint default 10 not null,
+    avatar varchar(255) not null,
     primary key(id)
 );
 
