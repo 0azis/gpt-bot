@@ -87,6 +87,12 @@ func newTokens() tokens {
 	}
 }
 
+// type JwtSecretHash string
+
+func JwtSecretHash() []byte {
+	return []byte(getEnv("JWT_SECRET_HASH", ""))
+}
+
 // helper function
 func getEnv(key string, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
