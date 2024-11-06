@@ -1,8 +1,8 @@
 package server
 
 import (
-	"gpt-bot/api/db"
-	"gpt-bot/api/server/controllers"
+	"gpt-bot/internal/db"
+	"gpt-bot/internal/server/controllers"
 
 	"github.com/labstack/echo/v4"
 )

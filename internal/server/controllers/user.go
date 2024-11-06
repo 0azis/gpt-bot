@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"gpt-bot/api/db"
+	"gpt-bot/internal/db"
 	"gpt-bot/utils"
 
 	"github.com/labstack/echo/v4"

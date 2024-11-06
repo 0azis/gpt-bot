@@ -2,7 +2,7 @@ package tgbot
 
 import (
 	"context"
-	"gpt-bot/api/db"
+	"gpt-bot/internal/db"
 	"gpt-bot/utils"
 	"os"
 	"os/signal"
@@ -17,6 +17,7 @@ type BotInterface interface {
 
 	// handlers
 	startHandler(ctx context.Context, b *bot.Bot, update *models.Update)
+	getTelegramAvatar(ctx context.Context, userID int64) string
 }
 
 type tgBot struct {
@@ -45,7 +46,8 @@ func (tg tgBot) InitHandlers() {
 }
 
 func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	err := tb.store.User.Create(int(update.Message.From.ID))
+	userID := update.Message.From.ID
+	err := tb.store.User.Create(int(userID), tb.getTelegramAvatar(ctx, userID))
 	if err != nil {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
@@ -54,7 +56,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 		return
 	}
 
-	token, err := utils.SignJWT(int(update.Message.From.ID))
+	token, err := utils.SignJWT(int(userID))
 	if err != nil {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
@@ -78,4 +80,24 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 		ChatID: update.Message.Chat.ID,
 		Text:   "Hello!",
 	})
+}
+
+func (tb tgBot) getTelegramAvatar(ctx context.Context, userID int64) string {
+	var url string
+
+	// get list of photos
+	photos, _ := tb.b.GetUserProfilePhotos(ctx, &bot.GetUserProfilePhotosParams{
+		UserID: userID,
+	})
+
+	if photos.TotalCount == 0 {
+		url = "" // if user don't have an avatar
+	} else {
+		file, _ := tb.b.GetFile(ctx, &bot.GetFileParams{
+			FileID: photos.Photos[0][0].FileID, // take the first avatar
+		})
+		url = tb.b.FileDownloadLink(file) // generate link
+	}
+
+	return url
 }

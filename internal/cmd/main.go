@@ -1,9 +1,9 @@
 package main
 
 import (
-	"gpt-bot/api/db"
-	"gpt-bot/api/server"
 	"gpt-bot/config"
+	"gpt-bot/internal/db"
+	"gpt-bot/internal/server"
 	"gpt-bot/tgbot"
 	"log/slog"
 
