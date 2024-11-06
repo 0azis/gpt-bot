@@ -12,6 +12,6 @@ type user struct {
 
 // Create return nil (test)
 func (u user) Create(userID int) error {
-	_, err := u.db.Query(`insert into users (id) values (?)`, userID)
+	_, err := u.db.Query(`insert into users (id) values (?) on duplicate key update id = id`, userID)
 	return err
 }
