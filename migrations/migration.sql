@@ -6,14 +6,17 @@ CREATE TABLE users(
     primary key(id)
 );
 
--- CREATE TABLE refs(
---     id smallint not null,
---     user_id smallint not null
--- );
+CREATE TABLE chats (
+    id smallint not null auto_increment,
+    user_id int not null,
+    title varchar(255) not null,
+    primary key(id)
+);
 
--- CREATE TABLE chat(
---     id smallint not null,
---     user_id smallint not null,
-
---     primary key(id)
--- );
+CREATE TABLE messages(
+    id smallint not null auto_increment,
+    chat_id smallint not null,
+    content text not null,
+    is_user bool default false not null,
+    primary key(id)
+);
