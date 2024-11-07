@@ -2,6 +2,7 @@ package main
 
 import (
 	"gpt-bot/config"
+	"gpt-bot/internal/api"
 	"gpt-bot/internal/db"
 	"gpt-bot/internal/server"
 	"gpt-bot/tgbot"
@@ -39,12 +40,13 @@ func main() {
 
 	// init and http server
 	e := echo.New()
+	api := api.New(config.Tokens.Api())
 
 	// plug middlewares
 	e.Use(server.AuthMiddleware)
 
 	// init routes to it
-	server.InitRoutes(e, store)
+	server.InitRoutes(e, store, api)
 
 	err = e.Start(config.Server.Addr())
 	if err != nil {
