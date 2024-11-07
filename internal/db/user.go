@@ -4,7 +4,7 @@ import "github.com/jmoiron/sqlx"
 
 type userModel struct {
 	ID           int    `json:"id" db:"id"`
-	Subscription bool   `json:"subscription" db:"subscription"`
+	Subscription string `json:"subscription" db:"subscription"`
 	Requests     int    `json:"requestsCount" db:"requests"`
 	Avatar       string `json:"avatar" db:"avatar"`
 }

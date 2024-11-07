@@ -1,7 +1,7 @@
 FROM golang:1.23.2
 
 COPY . /app
-WORKDIR /app/api/cmd/
+WORKDIR /app/cmd/
 
 RUN go mod download
 

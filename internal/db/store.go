@@ -7,14 +7,18 @@ import (
 
 // Store is a main struct with all repositories
 type Store struct {
-	User userRepository
+	User    userRepository
+	Chat    chatRepository
+	Message messageRepository
 }
 
 func New(uri string) (Store, error) {
 	db, err := sqlx.Connect("mysql", uri)
 
 	store := Store{
-		User: user{db},
+		User:    user{db},
+		Chat:    chat{db},
+		Message: message{db},
 	}
 
 	return store, err
