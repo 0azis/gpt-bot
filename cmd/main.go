@@ -14,7 +14,7 @@ import (
 
 func main() {
 	// load env file
-	if err := gotenv.Load("../../.env"); err != nil {
+	if err := gotenv.Load("../.env"); err != nil {
 		slog.Error("environment not found")
 		return
 	}

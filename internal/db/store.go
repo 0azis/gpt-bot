@@ -9,7 +9,7 @@ import (
 type Store struct {
 	User    userRepository
 	Chat    chatRepository
-	Message chatRepository
+	Message messageRepository
 }
 
 func New(uri string) (Store, error) {
@@ -18,7 +18,7 @@ func New(uri string) (Store, error) {
 	store := Store{
 		User:    user{db},
 		Chat:    chat{db},
-		Message: chat{db},
+		Message: message{db},
 	}
 
 	return store, err

@@ -25,15 +25,17 @@ func userRoutes(apiRoute *echo.Group, store db.Store) {
 }
 
 func chatRoutes(apiRoute *echo.Group, store db.Store) {
-	chat := apiRoute.Group("/chat")
+	chat := apiRoute.Group("/chats")
 	controller := controllers.NewChatControllers(store)
 
+	chat.POST("", controller.Create)
 	chat.GET("", controller.GetChats)
 }
 
 func messageRoutes(apiRoute *echo.Group, store db.Store, api api.ApiInterface) {
-	message := apiRoute.Group("/message")
+	message := apiRoute.Group("/messages")
 	controller := controllers.NewMessageControllers(api, store)
 
 	message.POST("", controller.NewMessage)
+	message.GET("/chat/:id", controller.GetMessages)
 }

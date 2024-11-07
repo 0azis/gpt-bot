@@ -1,6 +1,6 @@
 CREATE TABLE users(
     id int not null,
-    subscription bool default false not null,
+    subscription varchar(255) default 'standart' not null,
     requests tinyint default 10 not null,
     avatar varchar(255) not null,
     primary key(id)
@@ -9,7 +9,8 @@ CREATE TABLE users(
 CREATE TABLE chats (
     id smallint not null auto_increment,
     user_id int not null,
-    title varchar(255) not null,
+    title varchar(255),
+    model varchar(255) not null,
     primary key(id)
 );
 

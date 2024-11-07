@@ -2,17 +2,22 @@ package api
 
 import (
 	"context"
-	"fmt"
+	"gpt-bot/internal/db"
 
 	"github.com/sashabaranov/go-openai"
 )
 
 type ApiInterface interface {
-	SendMessage(message string) (string, error)
+	SendMessage(apiMsg db.MessageModel) (string, error)
 }
 
 type apiClient struct {
 	*openai.Client
+}
+
+type apiMessageCredentials struct {
+	Model  string `json:"model"`
+	Prompt string `json:"prompt"`
 }
 
 func New(apiToken string) ApiInterface {
@@ -22,14 +27,17 @@ func New(apiToken string) ApiInterface {
 	}
 }
 
-func (ac apiClient) SendMessage(message string) (string, error) {
+func (ac apiClient) SendMessage(apiMsg db.MessageModel) (string, error) {
 	resp, err := ac.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
-		Model: openai.GPT4,
+		Model: apiMsg.Model,
 		Messages: []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleAssistant, Content: message},
+			{Role: openai.ChatMessageRoleAssistant, Content: apiMsg.Content},
 		},
 	})
 
-	fmt.Println(resp)
-	return resp.Choices[0].Message.Content, err
+	if len(resp.Choices) == 0 {
+		return "", err
+	}
+
+	return resp.Choices[0].Message.Content, nil
 }
