@@ -26,6 +26,6 @@ func (m message) Create(msg MessageModel) error {
 
 func (m message) GetMessages(userID, chatID int) ([]MessageModel, error) {
 	var messages []MessageModel
-	err := m.db.Select(&messages, `select * from messages inner join chats on chats.id = messages.chat_id where messages.chat_id = ? and chats.user_id = ?`, chatID, userID)
+	err := m.db.Select(&messages, `select messages.id, messages.chat_id, messages.content, messages.is_user from messages inner join chats on chats.id = messages.chat_id where messages.chat_id = ? and chats.user_id = ?`, chatID, userID)
 	return messages, err
 }
