@@ -25,6 +25,9 @@ func (ch chat) Create(c echo.Context) error {
 	if err != nil {
 		return c.JSON(400, nil)
 	}
+	if !chat.Valid() {
+		return c.JSON(400, nil)
+	}
 	chat.UserID = userID
 
 	err = ch.store.Chat.Create(chat)

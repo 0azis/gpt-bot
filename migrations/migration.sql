@@ -14,7 +14,7 @@ CREATE TABLE chats (
     user_id bigint not null,
     title varchar(255),
     model varchar(255) not null,
-    type varchar(255) not null,
+    type enum('chat', 'image') not null,
     foreign key (user_id) references users (id) on delete cascade,
     primary key(id)
 );

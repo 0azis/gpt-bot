@@ -19,6 +19,13 @@ type ChatModel struct {
 	Type   chatType `json:"type" db:"type"`
 }
 
+func (cm ChatModel) Valid() bool {
+	if cm.Model != "" && (cm.Type == ChatText || cm.Type == ChatImage) {
+		return true
+	}
+	return false
+}
+
 type chatRepository interface {
 	Create(chat ChatModel) error
 	GetChats(userID int) ([]ChatModel, error)
@@ -30,7 +37,7 @@ type chat struct {
 }
 
 func (c chat) Create(chat ChatModel) error {
-	_, err := c.db.Query(`insert into chats (user_id, model) values (?, ?)`, chat.UserID, chat.Model)
+	_, err := c.db.Query(`insert into chats (user_id, model, type) values (?, ?, ?)`, chat.UserID, chat.Model, chat.Type)
 	return err
 }
 
