@@ -3,6 +3,7 @@ package controllers
 import (
 	"gpt-bot/internal/db"
 	"gpt-bot/utils"
+	"log/slog"
 
 	"github.com/labstack/echo/v4"
 )
@@ -28,6 +29,7 @@ func (ch chat) Create(c echo.Context) error {
 
 	err = ch.store.Chat.Create(chat)
 	if err != nil {
+		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
 
@@ -38,6 +40,7 @@ func (ch chat) GetChats(c echo.Context) error {
 	userID := utils.ExtractUserID(c)
 	chats, err := ch.store.Chat.GetChats(userID)
 	if err != nil {
+		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
 

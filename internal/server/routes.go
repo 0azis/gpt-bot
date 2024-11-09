@@ -22,6 +22,7 @@ func userRoutes(apiRoute *echo.Group, store db.Store) {
 	controller := controllers.NewUserControllers(store)
 
 	user.GET("", controller.GetUser)
+	// user.GET("/referral", controller.GetReferralCode)
 }
 
 func chatRoutes(apiRoute *echo.Group, store db.Store) {
