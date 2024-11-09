@@ -2,12 +2,15 @@ package tgbot
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"gpt-bot/internal/db"
 	"gpt-bot/utils"
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -52,50 +55,6 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 	user.ID = int(update.Message.From.ID)
 	user.Avatar = tb.getTelegramAvatar(ctx, int64(user.ID))
 
-	// msgSlice := strings.Split(update.Message.Text, " ")
-	// if len(msgSlice) == 2 {
-	// 	refCode := &msgSlice[1]
-	// 	id, err := tb.store.User.IsUserReferred(user.ID, *refCode)
-	// 	if err != nil {
-	// 		tb.botError(ctx, update, "internal error")
-	// 		return
-	// 	}
-	// 	if id != 0 {
-	// 		tb.botError(ctx, update, "referral link can't be used twice")
-	// 		return
-	// 	}
-
-	// 	ownerID, err := tb.store.User.OwnerReferralCode(*refCode)
-	// 	if errors.Is(err, sql.ErrNoRows) {
-	// 		tb.botError(ctx, update, "referral link doesn't exists")
-	// 		return
-	// 	}
-	// 	if err != nil {
-	// 		slog.Error(err.Error())
-	// 		tb.botError(ctx, update, "internal error")
-	// 		return
-	// 	}
-
-	// 	award, err := tb.store.Bonus.GetReferralAward()
-	// 	if err != nil {
-	// 		slog.Error(err.Error())
-	// 		tb.botError(ctx, update, "internal error while realese ref link")
-	// 		return
-	// 	}
-	// 	err = tb.store.User.RaiseBalance(ownerID, award)
-	// 	if err != nil {
-	// 		slog.Error(err.Error())
-	// 		tb.botError(ctx, update, "internal error while raise referred balance")
-	// 		return
-	// 	}
-	// 	err = tb.store.User.SetReferredBy(user.ID, *refCode)
-	// 	if err != nil {
-	// 		slog.Error(err.Error())
-	// 		tb.botError(ctx, update, "internal error")
-	// 		return
-	// 	}
-	// }
-
 	err := tb.store.User.Create(user)
 	if err != nil {
 		slog.Error(err.Error())
@@ -108,6 +67,50 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 		slog.Error(err.Error())
 		tb.botError(ctx, update, "internal erorr while create jwt token")
 		return
+	}
+
+	msgSlice := strings.Split(update.Message.Text, " ")
+	if len(msgSlice) == 2 {
+		refCode := &msgSlice[1]
+		id, err := tb.store.User.IsUserReferred(user.ID, *refCode)
+		if err != nil {
+			tb.botError(ctx, update, "internal error")
+			return
+		}
+		if id != 0 {
+			tb.botError(ctx, update, "referral link can't be used twice")
+			return
+		}
+
+		ownerID, err := tb.store.User.OwnerReferralCode(*refCode)
+		if errors.Is(err, sql.ErrNoRows) {
+			tb.botError(ctx, update, "referral link doesn't exists")
+			return
+		}
+		if err != nil {
+			slog.Error(err.Error())
+			tb.botError(ctx, update, "internal error")
+			return
+		}
+
+		award, err := tb.store.Bonus.GetReferralAward()
+		if err != nil {
+			slog.Error(err.Error())
+			tb.botError(ctx, update, "internal error while realese ref link")
+			return
+		}
+		err = tb.store.User.RaiseBalance(ownerID, award)
+		if err != nil {
+			slog.Error(err.Error())
+			tb.botError(ctx, update, "internal error while raise referred balance")
+			return
+		}
+		err = tb.store.User.SetReferredBy(user.ID, *refCode)
+		if err != nil {
+			slog.Error(err.Error())
+			tb.botError(ctx, update, "internal error")
+			return
+		}
 	}
 
 	b.SetChatMenuButton(ctx, &bot.SetChatMenuButtonParams{
