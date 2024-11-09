@@ -10,6 +10,7 @@ type Store struct {
 	User    userRepository
 	Chat    chatRepository
 	Message messageRepository
+	Bonus   bonusRepository
 }
 
 func New(uri string) (Store, error) {
@@ -19,6 +20,7 @@ func New(uri string) (Store, error) {
 		User:    user{db},
 		Chat:    chat{db},
 		Message: message{db},
+		Bonus:   bonus{db},
 	}
 
 	return store, err

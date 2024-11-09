@@ -4,6 +4,7 @@ import (
 	"context"
 	"gpt-bot/internal/db"
 	"gpt-bot/utils"
+	"log/slog"
 	"os"
 	"os/signal"
 
@@ -49,6 +50,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 	userID := update.Message.From.ID
 	err := tb.store.User.Create(int(userID), tb.getTelegramAvatar(ctx, userID))
 	if err != nil {
+		slog.Error(err.Error())
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
 			Text:   "Error",
@@ -58,6 +60,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 
 	token, err := utils.SignJWT(int(userID))
 	if err != nil {
+		slog.Error(err.Error())
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
 			Text:   "Error",
@@ -69,7 +72,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 		ChatID: update.Message.Chat.ID,
 		MenuButton: models.MenuButtonWebApp{
 			Type: "web_app",
-			Text: "Open App",
+			Text: "Open Mini App",
 			WebApp: models.WebAppInfo{
 				URL: tb.webAppUrl + "?" + token,
 			},
