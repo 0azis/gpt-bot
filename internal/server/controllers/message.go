@@ -3,6 +3,7 @@ package controllers
 import (
 	"gpt-bot/internal/api"
 	"gpt-bot/internal/db"
+	"gpt-bot/utils"
 	"log/slog"
 	"strconv"
 
@@ -29,11 +30,13 @@ func (m message) NewMessage(c echo.Context) error {
 
 	err = m.store.Message.Create(userMessage)
 	if err != nil {
+		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
 
 	model, err := m.store.Chat.GetModelOfChat(userMessage.ChatID)
 	if err != nil {
+		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
 	userMessage.Model = model
@@ -58,14 +61,16 @@ func (m message) NewMessage(c echo.Context) error {
 }
 
 func (m message) GetMessages(c echo.Context) error {
+	jwtUserID := utils.ExtractUserID(c)
 	value := c.Param("id")
 	chatID, err := strconv.Atoi(value)
 	if err != nil {
 		return c.JSON(400, nil)
 	}
 
-	messages, err := m.store.Message.GetMessages(chatID)
+	messages, err := m.store.Message.GetMessages(jwtUserID, chatID)
 	if err != nil {
+		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
 

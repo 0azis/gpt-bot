@@ -2,10 +2,15 @@ package tgbot
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
 	"gpt-bot/internal/db"
 	"gpt-bot/utils"
+	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -42,26 +47,39 @@ func (tb tgBot) Start() {
 }
 
 func (tg tgBot) InitHandlers() {
-	tg.b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, tg.startHandler)
+	tg.b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeContains, tg.startHandler)
 }
 
 func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	userID := update.Message.From.ID
-	err := tb.store.User.Create(int(userID), tb.getTelegramAvatar(ctx, userID))
+	var user db.UserModel
+	msgSlice := strings.Split(update.Message.Text, " ")
+	if len(msgSlice) == 2 {
+		refCode := &msgSlice[1]
+		err := tb.store.User.CheckReferralCode(*refCode)
+		if errors.Is(err, sql.ErrNoRows) {
+			tb.botError(ctx, update, "referral link doesn't exists")
+			return
+		}
+		if err != nil {
+			tb.botError(ctx, update, "internal error")
+			return
+		}
+		user.ReferredBy = &msgSlice[1]
+	}
+	user.ID = int(update.Message.From.ID)
+	user.Avatar = tb.getTelegramAvatar(ctx, int64(user.ID))
+
+	err := tb.store.User.Create(user)
 	if err != nil {
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   "Error",
-		})
+		slog.Error(err.Error())
+		tb.botError(ctx, update, "internal error while creating user")
 		return
 	}
 
-	token, err := utils.SignJWT(int(userID))
+	token, err := utils.SignJWT(user.ID)
 	if err != nil {
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   "Error",
-		})
+		slog.Error(err.Error())
+		tb.botError(ctx, update, "internal erorr while create jwt token")
 		return
 	}
 
@@ -69,7 +87,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 		ChatID: update.Message.Chat.ID,
 		MenuButton: models.MenuButtonWebApp{
 			Type: "web_app",
-			Text: "Open App",
+			Text: "Open Mini App",
 			WebApp: models.WebAppInfo{
 				URL: tb.webAppUrl + "?" + token,
 			},
@@ -78,7 +96,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
-		Text:   "Hello!",
+		Text:   fmt.Sprintf("Hello!, %s", token),
 	})
 }
 
@@ -100,4 +118,11 @@ func (tb tgBot) getTelegramAvatar(ctx context.Context, userID int64) string {
 	}
 
 	return url
+}
+
+func (tb tgBot) botError(ctx context.Context, update *models.Update, errorMsg string) {
+	tb.b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: update.Message.Chat.ID,
+		Text:   fmt.Sprintf("Error: %s", errorMsg),
+	})
 }

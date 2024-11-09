@@ -12,7 +12,7 @@ type MessageModel struct {
 
 type messageRepository interface {
 	Create(msg MessageModel) error
-	GetMessages(chatID int) ([]MessageModel, error)
+	GetMessages(userID, chatID int) ([]MessageModel, error)
 }
 
 type message struct {
@@ -24,8 +24,8 @@ func (m message) Create(msg MessageModel) error {
 	return err
 }
 
-func (m message) GetMessages(chatID int) ([]MessageModel, error) {
+func (m message) GetMessages(userID, chatID int) ([]MessageModel, error) {
 	var messages []MessageModel
-	err := m.db.Select(&messages, `select * from messages where chat_id = ?`, chatID)
+	err := m.db.Select(&messages, `select * from messages inner join chats on chats.id = messages.chat_id where messages.chat_id = ? and chats.user_id = ?`, chatID, userID)
 	return messages, err
 }

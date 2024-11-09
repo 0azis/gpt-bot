@@ -4,11 +4,19 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+type chatType string
+
+var (
+	ChatText  chatType = "chat"
+	ChatImage chatType = "image"
+)
+
 type ChatModel struct {
-	ID     int     `json:"id" db:"id"`
-	UserID int     `json:"userID" db:"user_id"`
-	Title  *string `json:"title" db:"title"`
-	Model  string  `json:"model" db:"model"`
+	ID     int      `json:"id" db:"id"`
+	UserID int      `json:"userID" db:"user_id"`
+	Title  *string  `json:"title" db:"title"`
+	Model  string   `json:"model" db:"model"`
+	Type   chatType `json:"type" db:"type"`
 }
 
 type chatRepository interface {
