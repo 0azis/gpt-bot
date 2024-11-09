@@ -9,6 +9,7 @@ import (
 	"log/slog"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/subosito/gotenv"
 )
 
@@ -40,6 +41,12 @@ func main() {
 
 	// init and http server
 	e := echo.New()
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     []string{"*"},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, echo.HeaderContentLength},
+		AllowMethods:     []string{echo.GET, echo.POST, echo.OPTIONS},
+		AllowCredentials: true,
+	}))
 	api := api.New(config.Tokens.Api())
 
 	// plug middlewares
