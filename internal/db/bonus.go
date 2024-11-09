@@ -16,6 +16,7 @@ type BonusModel struct {
 
 type bonusRepository interface {
 	ChangeReferralAward(award int) error
+	GetReferralAward() (int, error)
 }
 
 type bonus struct {
@@ -25,4 +26,10 @@ type bonus struct {
 func (b bonus) ChangeReferralAward(award int) error {
 	_, err := b.db.Query(`update bonuses set award = ? where bonus_type = 'referral'`, award)
 	return err
+}
+
+func (b bonus) GetReferralAward() (int, error) {
+	var award int
+	err := b.db.Get(&award, `select award from bonuses where bonus_type = 'referral'`)
+	return award, err
 }

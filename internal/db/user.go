@@ -19,8 +19,10 @@ type UserModel struct {
 type userRepository interface {
 	Create(user UserModel) error
 	GetUser(jwtUserID int) (UserModel, error)
-	CheckReferredUser(userID int, refCode string) error
-	CheckReferralCode(refCode string) error
+	IsUserReferred(userID int, refCode string) (int, error)
+	OwnerReferralCode(refCode string) (int, error)
+	RaiseBalance(userID, award int) error
+	SetReferredBy(userID int, refBy string) error
 }
 
 type user struct {
@@ -29,14 +31,9 @@ type user struct {
 
 // Create return nil (test)
 func (u user) Create(user UserModel) error {
-	var refBy *string
-	refBy = user.ReferredBy
-	if refBy != nil {
-		refBy = *&user.ReferredBy
-	}
 	refCode := utils.ReferralCode()
 
-	_, err := u.db.Query(`insert into users (id, avatar, referral_code, referred_by) values (?, ?, ?, ?) on duplicate key update avatar = avatar`, user.ID, user.Avatar, refCode, refBy)
+	_, err := u.db.Query(`insert into users (id, avatar, referral_code) values (?, ?, ?) on duplicate key update avatar = avatar`, user.ID, user.Avatar, refCode)
 	return err
 }
 
@@ -46,14 +43,33 @@ func (u user) GetUser(jwtUserID int) (UserModel, error) {
 	return user, err
 }
 
-func (u user) CheckReferredUser(userID int, refCode string) error {
+func (u user) IsUserReferred(userID int, refCode string) (int, error) {
 	var id int
-	err := u.db.Get(&id, `select id from users where referral_by = ? and id = ?`, refCode, userID)
+	rows, err := u.db.Query(`select id from users where referred_by = ? and id = ?`, refCode, userID)
+	if err != nil {
+		return id, err
+	}
+	for rows.Next() {
+		err = rows.Scan(&id)
+		if err != nil {
+			return id, err
+		}
+	}
+	return id, nil
+}
+
+func (u user) OwnerReferralCode(refCode string) (int, error) {
+	var id int
+	err := u.db.Get(&id, `select id from users where referral_code = ?`, refCode)
+	return id, err
+}
+
+func (u user) RaiseBalance(userID, award int) error {
+	_, err := u.db.Query(`update users set balance = balance + ? where id = ?`, award, userID)
 	return err
 }
 
-func (u user) CheckReferralCode(refCode string) error {
-	var id int
-	err := u.db.Get(&id, `select id from users where referral_code = ?`, refCode)
+func (u user) SetReferredBy(userID int, refBy string) error {
+	_, err := u.db.Query(`update users set referred_by = ? where id = ?`, refBy, userID)
 	return err
 }
