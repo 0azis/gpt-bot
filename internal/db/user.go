@@ -20,9 +20,10 @@ type userRepository interface {
 	Create(user UserModel) error
 	GetUser(jwtUserID int) (UserModel, error)
 	IsUserReferred(userID int, refCode string) (int, error)
+	SetReferredBy(userID int, refBy string) error
 	OwnerReferralCode(refCode string) (int, error)
 	RaiseBalance(userID, award int) error
-	SetReferredBy(userID int, refBy string) error
+	ReduceBalance(userID, sum int) error
 }
 
 type user struct {
@@ -58,6 +59,11 @@ func (u user) IsUserReferred(userID int, refCode string) (int, error) {
 	return id, nil
 }
 
+func (u user) SetReferredBy(userID int, refBy string) error {
+	_, err := u.db.Query(`update users set referred_by = ? where id = ?`, refBy, userID)
+	return err
+}
+
 func (u user) OwnerReferralCode(refCode string) (int, error) {
 	var id int
 	err := u.db.Get(&id, `select id from users where referral_code = ?`, refCode)
@@ -69,7 +75,7 @@ func (u user) RaiseBalance(userID, award int) error {
 	return err
 }
 
-func (u user) SetReferredBy(userID int, refBy string) error {
-	_, err := u.db.Query(`update users set referred_by = ? where id = ?`, refBy, userID)
+func (u user) ReduceBalance(userID, sum int) error {
+	_, err := u.db.Query(`update users set balance = balance - ? where id = ?`, sum, userID)
 	return err
 }

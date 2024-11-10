@@ -5,6 +5,8 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
+const PriceOfMessage int = 10
+
 type MessageModel struct {
 	ID      int    `json:"id" db:"id"`
 	ChatID  int    `json:"chatID" db:"chat_id"`

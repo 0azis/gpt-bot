@@ -48,6 +48,12 @@ func (m message) NewMessage(c echo.Context) error {
 		return c.JSON(500, nil)
 	}
 
+	err = m.store.User.ReduceBalance(jwtUserID, db.PriceOfMessage)
+	if err != nil {
+		slog.Error(err.Error())
+		c.JSON(500, nil)
+	}
+
 	switch chat.Type {
 	case db.ChatImage:
 		switch chat.Model {
