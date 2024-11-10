@@ -10,10 +10,11 @@ import (
 
 type openAiInterface interface {
 	SendMessage(model string, apiMsgs []db.MessageModel) (string, error)
-	SendImageMessage(apiMsgs []db.MessageModel) (string, error)
+	SendImageMessage(prompt string) (string, error)
+	GenerateTopicForChat(startMsg db.MessageModel) (string, error)
 }
 
-type apiClient struct {
+type openaiClient struct {
 	*openai.Client
 }
 
@@ -24,19 +25,19 @@ type apiMessageCredentials struct {
 
 func newOpenAiClient(token string) openAiInterface {
 	client := openai.NewClient(token)
-	return apiClient{
+	return openaiClient{
 		client,
 	}
 }
 
-func (ac apiClient) SendMessage(model string, apiMsgs []db.MessageModel) (string, error) {
+func (oc openaiClient) SendMessage(model string, apiMsgs []db.MessageModel) (string, error) {
 	var openaiMessages []openai.ChatCompletionMessage
 	for _, message := range apiMsgs {
 		openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
 			Role: message.Role, Content: message.Content,
 		})
 	}
-	resp, err := ac.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
+	resp, err := oc.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
 		Model:    model,
 		Messages: openaiMessages,
 	})
@@ -49,22 +50,28 @@ func (ac apiClient) SendMessage(model string, apiMsgs []db.MessageModel) (string
 	return resp.Choices[0].Message.Content, nil
 }
 
-func (ac apiClient) SendImageMessage(apiMsgs []db.MessageModel) (string, error) {
-	var openaiMessages []openai.ChatCompletionMessage
-	for _, message := range apiMsgs {
-		openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
-			Role: message.Role, Content: message.Content,
-		})
-	}
-
-	resp, err := ac.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
-		Model:    openai.CreateImageModelDallE3,
-		Messages: openaiMessages,
+func (oc openaiClient) SendImageMessage(prompt string) (string, error) {
+	resp, err := oc.CreateImage(context.Background(), openai.ImageRequest{
+		Model:  openai.CreateImageModelDallE3,
+		Prompt: prompt,
 	})
 
 	if err != nil {
 		return "", err
 	}
 
-	return resp.Choices[0].Message.Content, nil
+	return resp.Data[0].URL, nil
+}
+
+func (oc openaiClient) GenerateTopicForChat(startMsg db.MessageModel) (string, error) {
+	resp, err := oc.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
+		Model: openai.GPT4,
+		Messages: []openai.ChatCompletionMessage{
+			{Role: openai.ChatMessageRoleSystem, Content: "I want you to respond not in markdown style. Exclude slashes"},
+			{Role: openai.ChatMessageRoleUser, Content: startMsg.Content},
+			{Role: openai.ChatMessageRoleUser, Content: "generate a short chat topic based on the initial message in Russian"},
+		},
+	})
+
+	return resp.Choices[0].Message.Content, err
 }

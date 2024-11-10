@@ -36,6 +36,11 @@ func (m message) NewMessage(c echo.Context) error {
 		return c.JSON(500, nil)
 	}
 
+	go func() {
+		title, _ := m.api.OpenAI.GenerateTopicForChat(userMsg)
+		m.store.Chat.UpdateTitle(userMsg.ChatID, title)
+	}()
+
 	chat, err := m.store.Chat.GetChatInfo(msgCredentials.ChatID)
 	if err != nil {
 		slog.Error(err.Error())
@@ -71,7 +76,7 @@ func (m message) NewMessage(c echo.Context) error {
 			}
 			return c.JSON(200, answer)
 		case "dall-e-3":
-			answer, err := m.api.OpenAI.SendImageMessage(messages)
+			answer, err := m.api.OpenAI.SendImageMessage(msgCredentials.Content)
 			if err != nil {
 				slog.Error(err.Error())
 				return c.JSON(500, nil)
