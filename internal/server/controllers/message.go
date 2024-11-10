@@ -50,18 +50,37 @@ func (m message) NewMessage(c echo.Context) error {
 
 	switch chat.Type {
 	case db.ChatImage:
-		err := m.api.Runware.SendMessage(msgCredentials.Content)
-		if err != nil {
-			slog.Error(err.Error())
-			return c.JSON(500, nil)
+		switch chat.Model {
+		case "runware":
+			answer, err := m.api.Runware.SendMessage(msgCredentials.Content)
+			if err != nil {
+				slog.Error(err.Error())
+				return c.JSON(500, nil)
+			}
+			assistantMsg := db.NewAssistantMessage(msgCredentials.ChatID, answer)
+			err = m.store.Message.Create(assistantMsg)
+			if err != nil {
+				slog.Error(err.Error())
+				return c.JSON(500, nil)
+			}
+			return c.JSON(200, answer)
+		case "dall-e-3":
+			answer, err := m.api.OpenAI.SendImageMessage(messages)
+			if err != nil {
+				slog.Error(err.Error())
+				return c.JSON(500, nil)
+			}
+			assistantMsg := db.NewAssistantMessage(msgCredentials.ChatID, answer)
+			err = m.store.Message.Create(assistantMsg)
+			if err != nil {
+				slog.Error(err.Error())
+				return c.JSON(500, nil)
+			}
+			return c.JSON(200, answer)
+		default:
+			return c.JSON(400, nil)
 		}
-		// assistantMsg := db.NewAssistantMessage(msgCredentials.ChatID, answer)
-		// err = m.store.Message.Create(assistantMsg)
-		// if err != nil {
-		// 	slog.Error(err.Error())
-		// 	return c.JSON(500, nil)
-		// }
-		return c.JSON(200, err)
+
 	case db.ChatText:
 		answer, err := m.api.OpenAI.SendMessage(chat.Model, messages)
 		if err != nil {
