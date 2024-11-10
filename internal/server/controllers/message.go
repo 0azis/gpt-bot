@@ -16,7 +16,7 @@ type messageControllers interface {
 }
 
 type message struct {
-	api   api.ApiInterface
+	api   api.Interface
 	store db.Store
 }
 
@@ -24,7 +24,7 @@ func (m message) NewMessage(c echo.Context) error {
 	jwtUserID := utils.ExtractUserID(c)
 	var msgCredentials db.MessageCredentials
 	err := c.Bind(&msgCredentials)
-	if err != nil {
+	if err != nil || !msgCredentials.Valid() {
 		return c.JSON(400, nil)
 	}
 
@@ -36,7 +36,7 @@ func (m message) NewMessage(c echo.Context) error {
 		return c.JSON(500, nil)
 	}
 
-	model, err := m.store.Chat.GetModelOfChat(msgCredentials.ChatID)
+	chat, err := m.store.Chat.GetChatInfo(msgCredentials.ChatID)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
@@ -48,20 +48,36 @@ func (m message) NewMessage(c echo.Context) error {
 		return c.JSON(500, nil)
 	}
 
-	answer, err := m.api.SendMessage(model, messages)
-	if err != nil {
-		slog.Error(err.Error())
-		return c.JSON(500, nil)
+	switch chat.Type {
+	case db.ChatImage:
+		err := m.api.Runware.SendMessage(msgCredentials.Content)
+		if err != nil {
+			slog.Error(err.Error())
+			return c.JSON(500, nil)
+		}
+		// assistantMsg := db.NewAssistantMessage(msgCredentials.ChatID, answer)
+		// err = m.store.Message.Create(assistantMsg)
+		// if err != nil {
+		// 	slog.Error(err.Error())
+		// 	return c.JSON(500, nil)
+		// }
+		return c.JSON(200, err)
+	case db.ChatText:
+		answer, err := m.api.OpenAI.SendMessage(chat.Model, messages)
+		if err != nil {
+			slog.Error(err.Error())
+			return c.JSON(500, nil)
+		}
+		assistantMsg := db.NewAssistantMessage(msgCredentials.ChatID, answer)
+		err = m.store.Message.Create(assistantMsg)
+		if err != nil {
+			slog.Error(err.Error())
+			return c.JSON(500, nil)
+		}
+		return c.JSON(200, answer)
+	default:
+		return c.JSON(400, nil)
 	}
-
-	assistantMsg := db.NewAssistantMessage(msgCredentials.ChatID, answer)
-	err = m.store.Message.Create(assistantMsg)
-	if err != nil {
-		slog.Error(err.Error())
-		return c.JSON(500, nil)
-	}
-
-	return c.JSON(200, answer)
 }
 
 func (m message) GetMessages(c echo.Context) error {
@@ -81,7 +97,7 @@ func (m message) GetMessages(c echo.Context) error {
 	return c.JSON(200, messages)
 }
 
-func NewMessageControllers(api api.ApiInterface, store db.Store) messageControllers {
+func NewMessageControllers(api api.Interface, store db.Store) messageControllers {
 	return message{
 		api, store,
 	}

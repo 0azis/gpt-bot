@@ -9,7 +9,7 @@ import (
 )
 
 // InitRouter init all routes of all groups
-func InitRoutes(e *echo.Echo, store db.Store, api api.ApiInterface) {
+func InitRoutes(e *echo.Echo, store db.Store, api api.Interface) {
 	apiRoute := e.Group("/api/v1") // basic api route
 
 	userRoutes(apiRoute, store)
@@ -33,7 +33,7 @@ func chatRoutes(apiRoute *echo.Group, store db.Store) {
 	chat.GET("", controller.GetChats)
 }
 
-func messageRoutes(apiRoute *echo.Group, store db.Store, api api.ApiInterface) {
+func messageRoutes(apiRoute *echo.Group, store db.Store, api api.Interface) {
 	message := apiRoute.Group("/messages")
 	controller := controllers.NewMessageControllers(api, store)
 

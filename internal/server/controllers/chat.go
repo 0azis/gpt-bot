@@ -22,10 +22,7 @@ func (ch chat) Create(c echo.Context) error {
 
 	var chat db.ChatModel
 	err := c.Bind(&chat)
-	if err != nil {
-		return c.JSON(400, nil)
-	}
-	if !chat.Valid() {
+	if err != nil || !chat.Valid() {
 		return c.JSON(400, nil)
 	}
 	chat.UserID = userID

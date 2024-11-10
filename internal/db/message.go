@@ -33,6 +33,10 @@ type MessageCredentials struct {
 	Content string `json:"content"`
 }
 
+func (mc MessageCredentials) Valid() bool {
+	return mc.Content != ""
+}
+
 type messageRepository interface {
 	Create(msg MessageModel) error
 	GetMessages(userID, chatID int) ([]MessageModel, error)

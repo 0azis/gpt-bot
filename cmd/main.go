@@ -47,7 +47,11 @@ func main() {
 		AllowMethods:     []string{echo.GET, echo.POST, echo.OPTIONS},
 		AllowCredentials: true,
 	}))
-	api := api.New(config.Tokens.Api())
+	api := api.New(config)
+	// if err != nil {
+	// 	slog.Error("api connection failed")
+	// 	return
+	// }
 
 	// plug middlewares
 	e.Use(server.AuthMiddleware)
