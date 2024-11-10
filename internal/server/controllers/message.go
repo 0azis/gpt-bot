@@ -21,37 +21,41 @@ type message struct {
 }
 
 func (m message) NewMessage(c echo.Context) error {
-	var userMessage db.MessageModel
-	err := c.Bind(&userMessage)
+	jwtUserID := utils.ExtractUserID(c)
+	var msgCredentials db.MessageCredentials
+	err := c.Bind(&msgCredentials)
 	if err != nil {
 		return c.JSON(400, nil)
 	}
-	userMessage.IsUser = true
 
-	err = m.store.Message.Create(userMessage)
+	userMsg := db.NewUserMessage(msgCredentials.ChatID, msgCredentials.Content)
+
+	err = m.store.Message.Create(userMsg)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
 
-	model, err := m.store.Chat.GetModelOfChat(userMessage.ChatID)
-	if err != nil {
-		slog.Error(err.Error())
-		return c.JSON(500, nil)
-	}
-	userMessage.Model = model
-
-	answer, err := m.api.SendMessage(userMessage)
+	model, err := m.store.Chat.GetModelOfChat(msgCredentials.ChatID)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
 
-	botMsg := db.MessageModel{
-		ChatID:  userMessage.ChatID,
-		Content: answer,
+	messages, err := m.store.Message.GetMessages(jwtUserID, msgCredentials.ChatID)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
 	}
-	err = m.store.Message.Create(botMsg)
+
+	answer, err := m.api.SendMessage(model, messages)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
+	}
+
+	assistantMsg := db.NewAssistantMessage(msgCredentials.ChatID, answer)
+	err = m.store.Message.Create(assistantMsg)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)

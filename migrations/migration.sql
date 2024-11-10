@@ -23,7 +23,7 @@ CREATE TABLE messages(
     id smallint not null auto_increment,
     chat_id smallint not null,
     content text not null,
-    is_user bool default false not null,
+    role varchar(255) not null,
     foreign key (chat_id) references chats (id) on delete cascade,
     primary key(id)
 );

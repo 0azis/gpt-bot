@@ -8,7 +8,7 @@ import (
 )
 
 type ApiInterface interface {
-	SendMessage(apiMsg db.MessageModel) (string, error)
+	SendMessage(model string, apiMsgs []db.MessageModel) (string, error)
 }
 
 type apiClient struct {
@@ -27,15 +27,19 @@ func New(apiToken string) ApiInterface {
 	}
 }
 
-func (ac apiClient) SendMessage(apiMsg db.MessageModel) (string, error) {
+func (ac apiClient) SendMessage(model string, apiMsgs []db.MessageModel) (string, error) {
+	var openaiMessages []openai.ChatCompletionMessage
+	for _, message := range apiMsgs {
+		openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
+			Role: message.Role, Content: message.Content,
+		})
+	}
 	resp, err := ac.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
-		Model: apiMsg.Model,
-		Messages: []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleAssistant, Content: apiMsg.Content},
-		},
+		Model:    model,
+		Messages: openaiMessages,
 	})
 
-	if len(resp.Choices) == 0 {
+	if err != nil {
 		return "", err
 	}
 
