@@ -34,7 +34,7 @@ func (cm ChatModel) Valid() bool {
 }
 
 type chatRepository interface {
-	Create(chat ChatModel) error
+	Create(chat ChatModel) (int, error)
 	GetChats(userID int) ([]ChatModel, error)
 	GetChatInfo(chatID int) (ChatModel, error)
 }
@@ -43,9 +43,15 @@ type chat struct {
 	db *sqlx.DB
 }
 
-func (c chat) Create(chat ChatModel) error {
-	_, err := c.db.Query(`insert into chats (user_id, model, type) values (?, ?, ?)`, chat.UserID, chat.Model, chat.Type)
-	return err
+func (c chat) Create(chat ChatModel) (int, error) {
+	var chatID int
+	rows, err := c.db.Exec(`insert into chats (user_id, model, type) values (?, ?, ?)`, chat.UserID, chat.Model, chat.Type)
+	if err != nil {
+		return chatID, err
+	}
+	lastID, err := rows.LastInsertId()
+	chatID = int(lastID)
+	return chatID, err
 }
 
 func (c chat) GetChats(userID int) ([]ChatModel, error) {

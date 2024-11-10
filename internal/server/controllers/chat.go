@@ -27,13 +27,13 @@ func (ch chat) Create(c echo.Context) error {
 	}
 	chat.UserID = userID
 
-	err = ch.store.Chat.Create(chat)
+	chatID, err := ch.store.Chat.Create(chat)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
 
-	return c.JSON(201, nil)
+	return c.JSON(201, chatID)
 }
 
 func (ch chat) GetChats(c echo.Context) error {
