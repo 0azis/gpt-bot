@@ -10,14 +10,14 @@ import (
 const baseUrl = "https://api.runware.ai/v1"
 
 type runwareInterface interface {
-	SendMessage(prompt string) error
+	SendMessage(prompt string) (string, error)
 }
 
 type runwareClient struct {
 	token string
 }
 
-type bodyRequest struct {
+type requestBody struct {
 	TaskType       string `json:"taskType"`
 	TaskUUID       string `json:"taskUUID"`
 	PositivePrompt string `json:"positivePrompt"`
@@ -26,26 +26,16 @@ type bodyRequest struct {
 	ModelID        string `json:"modelId"`
 }
 
-type bodyResult struct {
-	Data interface{} `json:"data"`
-	// TaskType  string `json:"taskType"`
-	// TaskUUID  string `json:"taskUUID"`
-	// ImageUUID string `json:"imageUUID"`
-	// ImageURL  string `json:"imageURL"`
+type responseBody struct {
+	Data []data `json:"data"`
 }
 
-func newBody(prompt string) bodyRequest {
-	return bodyRequest{
-		PositivePrompt: prompt,
-	}
+type data struct {
+	ImageURL string `json:"imageURL"`
 }
 
-func newRunware(token string) runwareInterface {
-	return runwareClient{token}
-}
-
-func (rc runwareClient) SendMessage(prompt string) error {
-	body := bodyRequest{
+func newBody(prompt string) requestBody {
+	return requestBody{
 		TaskType:       "imageInference",
 		TaskUUID:       "39d7207a-87ef-4c93-8082-1431f9c1dc97",
 		PositivePrompt: prompt,
@@ -53,37 +43,43 @@ func (rc runwareClient) SendMessage(prompt string) error {
 		Height:         512,
 		ModelID:        "civitai:102438@133677",
 	}
+}
+
+func newRunware(token string) runwareInterface {
+	return runwareClient{token}
+}
+
+func (rc runwareClient) SendMessage(prompt string) (string, error) {
+	var imageLink string
+	var body []requestBody
+	body = append(body, newBody(prompt))
+
 	b, err := json.Marshal(body)
 	if err != nil {
-		return err
+		return imageLink, err
 	}
 
 	req, err := http.NewRequest("POST", baseUrl, bytes.NewBuffer(b))
 	if err != nil {
-		return err
+		return imageLink, err
 	}
 	req.Header = http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rc.token)},
 	}
-	fmt.Println(*req)
-	// req.Header.Set("Authorization", rc.token)
-	// req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
-	fmt.Println(*resp)
 	if err != nil {
-		return err
+		return imageLink, err
 	}
 	defer resp.Body.Close()
 
-	var respBody bodyResult
+	var respBody responseBody
 	err = json.NewDecoder(resp.Body).Decode(&respBody)
 	if err != nil {
-		return err
+		return imageLink, err
 	}
-	fmt.Println(respBody)
 
-	return nil
+	return respBody.Data[0].ImageURL, nil
 }

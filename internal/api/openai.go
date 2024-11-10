@@ -58,7 +58,7 @@ func (ac apiClient) SendImageMessage(apiMsgs []db.MessageModel) (string, error) 
 	}
 
 	resp, err := ac.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
-		Model:    openai.CreateImageModelDallE2,
+		Model:    openai.CreateImageModelDallE3,
 		Messages: openaiMessages,
 	})
 
