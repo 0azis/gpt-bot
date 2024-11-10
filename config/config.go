@@ -69,21 +69,27 @@ func newDatabase() database {
 // tokens config
 type tokens struct {
 	telegram string
-	api      string
+	openai   string
+	runware  string
 }
 
 func (t tokens) Telegram() string {
 	return t.telegram
 }
 
-func (t tokens) Api() string {
-	return t.api
+func (t tokens) OpenAI() string {
+	return t.openai
+}
+
+func (t tokens) Runware() string {
+	return t.runware
 }
 
 func newTokens() tokens {
 	return tokens{
 		telegram: getEnv("TELEGRAM_TOKEN", ""),
-		api:      getEnv("API_TOKEN", ""),
+		openai:   getEnv("OPENAI_TOKEN", ""),
+		runware:  getEnv("RUNWARE_TOKEN", ""),
 	}
 }
 

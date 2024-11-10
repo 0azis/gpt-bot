@@ -22,21 +22,18 @@ func (ch chat) Create(c echo.Context) error {
 
 	var chat db.ChatModel
 	err := c.Bind(&chat)
-	if err != nil {
-		return c.JSON(400, nil)
-	}
-	if !chat.Valid() {
+	if err != nil || !chat.Valid() {
 		return c.JSON(400, nil)
 	}
 	chat.UserID = userID
 
-	err = ch.store.Chat.Create(chat)
+	chatID, err := ch.store.Chat.Create(chat)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
 
-	return c.JSON(201, nil)
+	return c.JSON(201, chatID)
 }
 
 func (ch chat) GetChats(c echo.Context) error {
