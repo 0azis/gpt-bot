@@ -37,6 +37,7 @@ type chatRepository interface {
 	Create(chat ChatModel) (int, error)
 	GetChats(userID int) ([]ChatModel, error)
 	GetChatInfo(chatID int) (ChatModel, error)
+	UpdateTitle(chatID int, title string) error
 }
 
 type chat struct {
@@ -66,7 +67,7 @@ func (c chat) GetChatInfo(chatID int) (ChatModel, error) {
 	return chat, err
 }
 
-// func (c chat) UpdateTitle(chatID int, title string) error {
-// 	_, err := c.db.Query(`update chats set title = ? where id = ?`, title, chatID)
-// 	return err
-// }
+func (c chat) UpdateTitle(chatID int, title string) error {
+	_, err := c.db.Query(`update chats set title = ? where id = ?`, title, chatID)
+	return err
+}

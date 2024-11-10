@@ -44,7 +44,7 @@ func (ch chat) GetChats(c echo.Context) error {
 		return c.JSON(500, nil)
 	}
 
-	return c.JSON(201, chats)
+	return c.JSON(200, chats)
 }
 
 func NewChatControllers(store db.Store) chatControllers {
