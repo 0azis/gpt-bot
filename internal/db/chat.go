@@ -1,8 +1,6 @@
 package db
 
 import (
-	"slices"
-
 	"github.com/jmoiron/sqlx"
 )
 
@@ -26,11 +24,16 @@ type ChatModel struct {
 	Type   chatType `json:"type" db:"type"`
 }
 
-func (cm ChatModel) Valid() bool {
-	if slices.Contains(modelNames[cm.Type], cm.Model) {
-		return true
+func (cm *ChatModel) SetType() bool {
+	for t, models := range modelNames {
+		for _, model := range models {
+			if model == cm.Model {
+				cm.Type = t
+				break
+			}
+		}
 	}
-	return false
+	return cm.Type != ""
 }
 
 type chatRepository interface {
@@ -63,7 +66,7 @@ func (c chat) GetChats(userID int) ([]ChatModel, error) {
 
 func (c chat) GetChatInfo(chatID int) (ChatModel, error) {
 	var chat ChatModel
-	err := c.db.Get(&chat, `select model, type from chats where id = ?`, chatID)
+	err := c.db.Get(&chat, `select id, model, type from chats where id = ?`, chatID)
 	return chat, err
 }
 
