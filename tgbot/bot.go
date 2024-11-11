@@ -3,6 +3,7 @@ package tgbot
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"gpt-bot/internal/db"
@@ -12,17 +13,19 @@ import (
 	"os/signal"
 	"strings"
 
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
+	"github.com/0azis/bot"
+	"github.com/0azis/bot/models"
 )
 
 type BotInterface interface {
 	Start()
+	Instance() *bot.Bot
 	InitHandlers()
 
 	// handlers
 	startHandler(ctx context.Context, b *bot.Bot, update *models.Update)
 	getTelegramAvatar(ctx context.Context, userID int64) string
+	defaultHandler(ctx context.Context, b *bot.Bot, update *models.Update)
 }
 
 type tgBot struct {
@@ -46,8 +49,13 @@ func (tb tgBot) Start() {
 	tb.b.Start(ctx)
 }
 
+func (tb tgBot) Instance() *bot.Bot {
+	return tb.b
+}
+
 func (tg tgBot) InitHandlers() {
 	tg.b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeContains, tg.startHandler)
+	tg.b.SetDefaultHandler(tg.defaultHandler)
 }
 
 func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -56,6 +64,12 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 	user.Avatar = tb.getTelegramAvatar(ctx, int64(user.ID))
 
 	err := tb.store.User.Create(user)
+	if err != nil {
+		slog.Error(err.Error())
+		tb.botError(ctx, update, "internal error while creating user")
+		return
+	}
+	err = tb.store.Subscription.CreateStandardSubscription(user.ID)
 	if err != nil {
 		slog.Error(err.Error())
 		tb.botError(ctx, update, "internal error while creating user")
@@ -126,7 +140,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
-		Text:   fmt.Sprintf("Hello!, %s", token),
+		Text:   fmt.Sprintf("Hello!, %s", update.Message.From.Username),
 	})
 }
 
@@ -155,4 +169,48 @@ func (tb tgBot) botError(ctx context.Context, update *models.Update, errorMsg st
 		ChatID: update.Message.Chat.ID,
 		Text:   fmt.Sprintf("Error: %s", errorMsg),
 	})
+}
+
+func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if update.PreCheckoutQuery != nil {
+		fmt.Println(update.PreCheckoutQuery)
+		fmt.Println(update.PreCheckoutQuery.InvoicePayload)
+		var subscriptionPayload db.SubscriptionPaymentModel
+		err := json.Unmarshal([]byte(update.PreCheckoutQuery.InvoicePayload), &subscriptionPayload)
+		if err != nil {
+			return
+		}
+		err = tb.store.Subscription.UpdateSubscription(subscriptionPayload.UserID, subscriptionPayload.Name, subscriptionPayload.End)
+		if err != nil {
+			slog.Error(err.Error())
+			return
+		}
+		diamonds, err := tb.store.Subscription.SubscriptionInfo(subscriptionPayload.Name)
+		if err != nil {
+			slog.Error(err.Error())
+			return
+		}
+		err = tb.store.User.FillBalance(subscriptionPayload.UserID, diamonds)
+		if err != nil {
+			slog.Error(err.Error())
+			return
+		}
+
+		b.AnswerPreCheckoutQuery(ctx, &bot.AnswerPreCheckoutQueryParams{
+			PreCheckoutQueryID: update.PreCheckoutQuery.ID,
+			OK:                 true,
+			ErrorMessage:       "",
+		})
+		return
+	}
+
+	if update.Message != nil {
+		if update.Message.SuccessfulPayment != nil {
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   "Payment was done!",
+			})
+			return
+		}
+	}
 }

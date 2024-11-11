@@ -48,16 +48,12 @@ func main() {
 		AllowCredentials: true,
 	}))
 	api := api.New(config)
-	// if err != nil {
-	// 	slog.Error("api connection failed")
-	// 	return
-	// }
 
 	// plug middlewares
 	e.Use(server.AuthMiddleware)
 
 	// init routes to it
-	server.InitRoutes(e, store, api)
+	server.InitRoutes(e, store, api, bot.Instance())
 
 	err = e.Start(config.Server.Addr())
 	if err != nil {

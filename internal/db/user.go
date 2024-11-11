@@ -8,8 +8,7 @@ import (
 
 type UserModel struct {
 	ID           int     `json:"id" db:"id"`
-	Subscription string  `json:"subscription" db:"subscription"`
-	Requests     int     `json:"requestsCount" db:"requests"`
+	Subscription string  `json:"subscription"`
 	Avatar       string  `json:"avatar" db:"avatar"`
 	Balance      int     `json:"balance" db:"balance"`
 	ReferralCode *string `json:"referralCode" db:"referral_code"`
@@ -24,6 +23,7 @@ type userRepository interface {
 	OwnerReferralCode(refCode string) (int, error)
 	RaiseBalance(userID, award int) error
 	ReduceBalance(userID, sum int) error
+	FillBalance(userID, balance int) error
 }
 
 type user struct {
@@ -40,7 +40,15 @@ func (u user) Create(user UserModel) error {
 
 func (u user) GetUser(jwtUserID int) (UserModel, error) {
 	var user UserModel
-	err := u.db.Get(&user, `select * from users where id = ?`, jwtUserID)
+	rows, err := u.db.Query(`select users.id, subscriptions.name, users.balance, users.avatar, users.balance, users.referral_code, users.referred_by from users left join subscriptions on subscriptions.user_id = users.id where id = ?`, jwtUserID)
+	if err != nil {
+		return user, err
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&user.ID, &user.Subscription, &user.Balance, &user.Avatar, &user.Balance, &user.ReferralCode, &user.ReferredBy)
+	}
+
 	return user, err
 }
 
@@ -77,5 +85,10 @@ func (u user) RaiseBalance(userID, award int) error {
 
 func (u user) ReduceBalance(userID, sum int) error {
 	_, err := u.db.Query(`update users set balance = balance - ? where id = ?`, sum, userID)
+	return err
+}
+
+func (u user) FillBalance(userID, balance int) error {
+	_, err := u.db.Query(`update users set balance = ? where id = ?`, balance, userID)
 	return err
 }
