@@ -67,11 +67,14 @@ func (oc openaiClient) GenerateTopicForChat(startMsg db.MessageModel) (string, e
 	resp, err := oc.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
 		Model: openai.GPT4,
 		Messages: []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleSystem, Content: "I want you to respond not in markdown style. Exclude slashes"},
 			{Role: openai.ChatMessageRoleUser, Content: startMsg.Content},
-			{Role: openai.ChatMessageRoleUser, Content: "generate a short chat topic based on the initial message in Russian"},
+			{Role: openai.ChatMessageRoleUser, Content: "generate a short chat topic (5 words max) based on the initial message in Russian"},
 		},
 	})
+
+	if err != nil {
+		return "", err
+	}
 
 	return resp.Choices[0].Message.Content, err
 }

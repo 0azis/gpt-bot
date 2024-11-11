@@ -22,14 +22,12 @@ func userRoutes(apiRoute *echo.Group, store db.Store) {
 	controller := controllers.NewUserControllers(store)
 
 	user.GET("", controller.GetUser)
-	// user.GET("/referral", controller.GetReferralCode)
 }
 
 func chatRoutes(apiRoute *echo.Group, store db.Store) {
 	chat := apiRoute.Group("/chats")
 	controller := controllers.NewChatControllers(store)
 
-	chat.POST("", controller.Create)
 	chat.GET("", controller.GetChats)
 }
 
@@ -37,6 +35,7 @@ func messageRoutes(apiRoute *echo.Group, store db.Store, api api.Interface) {
 	message := apiRoute.Group("/messages")
 	controller := controllers.NewMessageControllers(api, store)
 
-	message.POST("", controller.NewMessage)
+	message.POST("/chat", controller.NewMessage)
+	message.POST("/chat/:id", controller.ChatMessage)
 	message.GET("/chat/:id", controller.GetMessages)
 }
