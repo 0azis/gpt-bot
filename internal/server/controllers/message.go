@@ -182,14 +182,14 @@ func (m message) modelAnswer(chat db.ChatModel, msg []db.MessageModel) (string, 
 	case db.ChatImage:
 		switch chat.Model {
 		case "runware":
-			answer, err := m.api.Runware.SendMessage(msg[0].Content)
+			answer, err := m.api.Runware.SendMessage(msg[len(msg)-1].Content)
 			if err != nil {
 				slog.Error(err.Error())
 				return answer, err
 			}
 			return answer, nil
 		case "dall-e-3":
-			answer, err := m.api.OpenAI.SendImageMessage(msg[0].Content)
+			answer, err := m.api.OpenAI.SendImageMessage(msg[len(msg)-1].Content)
 			if err != nil {
 				slog.Error(err.Error())
 				return answer, err

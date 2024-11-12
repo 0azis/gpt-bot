@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"database/sql"
-	"errors"
 	"gpt-bot/internal/db"
 	"gpt-bot/utils"
 	"log/slog"
@@ -21,12 +19,12 @@ type user struct {
 func (u user) GetUser(c echo.Context) error {
 	jwtUserID := utils.ExtractUserID(c)
 	user, err := u.store.User.GetByID(jwtUserID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return c.JSON(404, nil)
-	}
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
+	}
+	if user.ID == 0 {
+		return c.JSON(400, nil)
 	}
 
 	return c.JSON(200, user)
