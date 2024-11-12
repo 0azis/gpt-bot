@@ -66,7 +66,7 @@ func (c chat) GetByUser(userID int) ([]ChatModel, error) {
 
 func (c chat) GetByID(chatID int) (ChatModel, error) {
 	var chat ChatModel
-	err := c.db.Get(&chat, `select id, title, model, type form chats where id = ?`, chatID)
+	err := c.db.Get(&chat, `select id, title, model, type from chats where id = ?`, chatID)
 	return chat, err
 }
 
