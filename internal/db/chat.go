@@ -18,9 +18,9 @@ var modelNames = map[chatType][]string{
 
 type ChatModel struct {
 	ID     int      `json:"id" db:"id"`
-	UserID int      `json:"userID" db:"user_id"`
+	UserID int      `json:"-"`
 	Title  *string  `json:"title" db:"title"`
-	Model  string   `json:"model" db:"model"`
+	Model  string   `json:"-" db:"model"`
 	Type   chatType `json:"type" db:"type"`
 }
 
@@ -38,8 +38,8 @@ func (cm *ChatModel) SetType() bool {
 
 type chatRepository interface {
 	Create(chat ChatModel) (int, error)
-	GetChats(userID int) ([]ChatModel, error)
-	GetChatInfo(chatID int) (ChatModel, error)
+	GetByUser(userID int) ([]ChatModel, error)
+	GetByID(chatID int) (ChatModel, error)
 	UpdateTitle(chatID int, title string) error
 }
 
@@ -58,15 +58,15 @@ func (c chat) Create(chat ChatModel) (int, error) {
 	return chatID, err
 }
 
-func (c chat) GetChats(userID int) ([]ChatModel, error) {
+func (c chat) GetByUser(userID int) ([]ChatModel, error) {
 	var chats []ChatModel
-	err := c.db.Select(&chats, `select * from chats where user_id = ?`, userID)
+	err := c.db.Select(&chats, `select id, title, model, type from chats where user_id = ?`, userID)
 	return chats, err
 }
 
-func (c chat) GetChatInfo(chatID int) (ChatModel, error) {
+func (c chat) GetByID(chatID int) (ChatModel, error) {
 	var chat ChatModel
-	err := c.db.Get(&chat, `select id, model, type from chats where id = ?`, chatID)
+	err := c.db.Get(&chat, `select id, title, model, type form chats where id = ?`, chatID)
 	return chat, err
 }
 

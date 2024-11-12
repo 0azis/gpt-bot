@@ -1,6 +1,8 @@
 package db
 
 import (
+	"gpt-bot/config"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 )
@@ -14,8 +16,8 @@ type Store struct {
 	Subscription subscriptionRepository
 }
 
-func New(uri string) (Store, error) {
-	db, err := sqlx.Connect("mysql", uri)
+func New(cfg config.Database) (Store, error) {
+	db, err := sqlx.Connect("mysql", cfg.Addr())
 
 	store := Store{
 		User:         user{db},

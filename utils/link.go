@@ -15,7 +15,7 @@ const (
 
 var src = rand.NewSource(time.Now().UnixNano())
 
-func ReferralCode() string {
+func GenerateReferralCode() string {
 	n := 5
 	b := make([]byte, n)
 

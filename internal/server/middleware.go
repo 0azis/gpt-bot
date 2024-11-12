@@ -14,7 +14,9 @@ func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		if len(token) == 1 {
 			return c.JSON(401, nil)
 		}
-		_, err := utils.GetIdentity(token[1])
+		t := utils.NewToken()
+		t.SetStrToken(token[1])
+		err := t.GetIdentity()
 		if err != nil {
 			return c.JSON(401, nil)
 		}

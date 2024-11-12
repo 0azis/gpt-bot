@@ -9,19 +9,23 @@ import (
 type UserModel struct {
 	ID           int     `json:"id" db:"id"`
 	Subscription string  `json:"subscription"`
-	Avatar       string  `json:"avatar" db:"avatar"`
-	Balance      int     `json:"balance" db:"balance"`
-	ReferralCode *string `json:"referralCode" db:"referral_code"`
-	ReferredBy   *string `json:"referralBy" db:"referred_by"`
+	Avatar       string  `json:"avatar"`
+	Balance      int     `json:"balance"`
+	ReferralCode *string `json:"referralCode"`
+	ReferredBy   *string `json:"referredBy"`
 }
 
 type userRepository interface {
+	// user
 	Create(user UserModel) error
-	GetUser(jwtUserID int) (UserModel, error)
+	GetByID(jwtUserID int) (UserModel, error)
+	// referral
 	IsUserReferred(userID int, refCode string) (int, error)
 	SetReferredBy(userID int, refBy string) error
-	OwnerReferralCode(refCode string) (int, error)
-	RaiseBalance(userID, award int) error
+	OwnerOfReferralCode(refCode string) (int, error)
+	//balance
+	GetBalance(userID int) (int, error)
+	RaiseBalance(userID, sum int) error
 	ReduceBalance(userID, sum int) error
 	FillBalance(userID, balance int) error
 }
@@ -30,23 +34,26 @@ type user struct {
 	db *sqlx.DB
 }
 
-// Create return nil (test)
 func (u user) Create(user UserModel) error {
-	refCode := utils.ReferralCode()
+	refCode := utils.GenerateReferralCode()
 
 	_, err := u.db.Query(`insert into users (id, avatar, referral_code) values (?, ?, ?) on duplicate key update avatar = avatar`, user.ID, user.Avatar, refCode)
 	return err
 }
 
-func (u user) GetUser(jwtUserID int) (UserModel, error) {
+func (u user) GetByID(jwtUserID int) (UserModel, error) {
 	var user UserModel
 	rows, err := u.db.Query(`select users.id, subscriptions.name, users.balance, users.avatar, users.balance, users.referral_code, users.referred_by from users left join subscriptions on subscriptions.user_id = users.id where id = ?`, jwtUserID)
 	if err != nil {
 		return user, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		err = rows.Scan(&user.ID, &user.Subscription, &user.Balance, &user.Avatar, &user.Balance, &user.ReferralCode, &user.ReferredBy)
+		if err != nil {
+			return user, err
+		}
 	}
 
 	return user, err
@@ -58,6 +65,8 @@ func (u user) IsUserReferred(userID int, refCode string) (int, error) {
 	if err != nil {
 		return id, err
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 		err = rows.Scan(&id)
 		if err != nil {
@@ -72,14 +81,31 @@ func (u user) SetReferredBy(userID int, refBy string) error {
 	return err
 }
 
-func (u user) OwnerReferralCode(refCode string) (int, error) {
+func (u user) OwnerOfReferralCode(refCode string) (int, error) {
 	var id int
 	err := u.db.Get(&id, `select id from users where referral_code = ?`, refCode)
 	return id, err
 }
 
-func (u user) RaiseBalance(userID, award int) error {
-	_, err := u.db.Query(`update users set balance = balance + ? where id = ?`, award, userID)
+func (u user) GetBalance(userID int) (int, error) {
+	var balance int
+	rows, err := u.db.Query(`select balance from users where id = ?`, userID)
+	if err != nil {
+		return balance, err
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&balance)
+		if err != nil {
+			return balance, err
+		}
+	}
+
+	return balance, nil
+}
+
+func (u user) RaiseBalance(userID, sum int) error {
+	_, err := u.db.Query(`update users set balance = balance + ? where id = ?`, sum, userID)
 	return err
 }
 

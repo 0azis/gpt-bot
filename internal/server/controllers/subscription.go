@@ -22,13 +22,14 @@ type subscription struct {
 
 func (s subscription) CreateInvoiceLink(c echo.Context) error {
 	jwtUserID := utils.ExtractUserID(c)
-	var paymentCredentials db.SubscriptionPaymentModel
+
+	var paymentCredentials db.SubscriptionModel
 	paymentCredentials.UserID = jwtUserID
 	err := c.Bind(&paymentCredentials)
 	if err != nil || !paymentCredentials.Valid() {
 		return c.JSON(400, nil)
 	}
-	paymentCredentials.Rename()
+	paymentCredentials.ToReadable()
 
 	payload, err := json.Marshal(paymentCredentials)
 	if err != nil {
@@ -37,7 +38,7 @@ func (s subscription) CreateInvoiceLink(c echo.Context) error {
 
 	link, err := s.b.CreateInvoiceLink(context.Background(), &bot.CreateInvoiceLinkParams{
 		Title:       fmt.Sprintf("%s subscription", paymentCredentials.Name),
-		Description: "Test",
+		Description: "Buy subscription",
 		Payload:     string(payload),
 		Currency:    "XTR",
 		Prices: []models.LabeledPrice{

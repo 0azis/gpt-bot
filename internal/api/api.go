@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"gpt-bot/config"
 )
 
@@ -10,10 +9,9 @@ type Interface struct {
 	Runware runwareInterface
 }
 
-func New(cfg config.Config) Interface {
-	fmt.Println(cfg)
-	openai := newOpenAiClient(cfg.Tokens.OpenAI())
-	runware := newRunware(cfg.Tokens.Runware())
+func New(cfg config.Api) Interface {
+	openai := newOpenAiClient(cfg.OpenAI())
+	runware := newRunware(cfg.Runware())
 	return Interface{
 		openai, runware,
 	}

@@ -16,23 +16,23 @@ var subscriptions map[string]int = map[string]int{
 }
 
 type subscriptionRepository interface {
-	CreateStandardSubscription(userID int) error
-	UpdateSubscription(userID int, name string, end string) error
-	SubscriptionInfo(name string) (int, error)
+	InitStandard(userID int) error
+	Update(userID int, name string, end string) error
+	Info(name string) (int, error)
 }
 
 type subscription struct {
 	db *sqlx.DB
 }
 
-type SubscriptionPaymentModel struct {
+type SubscriptionModel struct {
 	UserID int    `json:"userId"`
 	Name   string `json:"name"`
 	Amount int    `json:"amount"`
 	End    string `json:"end"`
 }
 
-func (sc SubscriptionPaymentModel) Valid() bool {
+func (sc SubscriptionModel) Valid() bool {
 	fmt.Println(sc)
 	if _, ok := subscriptions[sc.Name]; !ok {
 		return false
@@ -46,7 +46,7 @@ func (sc SubscriptionPaymentModel) Valid() bool {
 	return true
 }
 
-func (sc *SubscriptionPaymentModel) Rename() {
+func (sc *SubscriptionModel) ToReadable() {
 	oldName := sc.Name
 	newName := strings.Split(oldName, "-")
 	sc.Name = newName[0]
@@ -59,17 +59,17 @@ func (sc *SubscriptionPaymentModel) Rename() {
 	}
 }
 
-func (s subscription) CreateStandardSubscription(userID int) error {
+func (s subscription) InitStandard(userID int) error {
 	_, err := s.db.Query(`insert into subscriptions (user_id) values (?) on duplicate key update user_id = user_id`, userID)
 	return err
 }
 
-func (s subscription) UpdateSubscription(userID int, name string, end string) error {
+func (s subscription) Update(userID int, name string, end string) error {
 	_, err := s.db.Query(`update subscriptions set name = ?, end = ? where user_id = ?`, name, end, userID)
 	return err
 }
 
-func (s subscription) SubscriptionInfo(name string) (int, error) {
+func (s subscription) Info(name string) (int, error) {
 	var diamonds int
 	err := s.db.Get(&diamonds, `select diamonds from subscriptions_info where name = ?`, name)
 	return diamonds, err

@@ -18,11 +18,6 @@ type openaiClient struct {
 	*openai.Client
 }
 
-type apiMessageCredentials struct {
-	Model  string `json:"model"`
-	Prompt string `json:"prompt"`
-}
-
 func newOpenAiClient(token string) openAiInterface {
 	client := openai.NewClient(token)
 	return openaiClient{
@@ -57,6 +52,7 @@ func (oc openaiClient) SendImageMessage(prompt string) (string, error) {
 	})
 
 	if err != nil {
+		slog.Error(err.Error())
 		return "", err
 	}
 
@@ -73,6 +69,7 @@ func (oc openaiClient) GenerateTopicForChat(startMsg db.MessageModel) (string, e
 	})
 
 	if err != nil {
+		slog.Error(err.Error())
 		return "", err
 	}
 

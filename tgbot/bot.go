@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gpt-bot/config"
 	"gpt-bot/internal/db"
 	"gpt-bot/utils"
 	"log/slog"
@@ -24,22 +25,25 @@ type BotInterface interface {
 
 	// handlers
 	startHandler(ctx context.Context, b *bot.Bot, update *models.Update)
-	getTelegramAvatar(ctx context.Context, userID int64) string
 	defaultHandler(ctx context.Context, b *bot.Bot, update *models.Update)
+
+	// helpers
+	getTelegramAvatar(ctx context.Context, userID int64) string
+	informUser(ctx context.Context, userID int64, errMsg string)
 }
 
 type tgBot struct {
-	webAppUrl string
-	store     db.Store
-	b         *bot.Bot
+	telegram config.Telegram
+	store    db.Store
+	b        *bot.Bot
 }
 
-func New(token string, store db.Store, url string) (BotInterface, error) {
-	b, err := bot.New(token)
+func New(cfg config.Telegram, store db.Store) (BotInterface, error) {
+	b, err := bot.New(cfg.GetToken())
 	return tgBot{
-		webAppUrl: url,
-		store:     store,
-		b:         b,
+		telegram: cfg,
+		store:    store,
+		b:        b,
 	}, err
 }
 
@@ -55,6 +59,7 @@ func (tb tgBot) Instance() *bot.Bot {
 
 func (tg tgBot) InitHandlers() {
 	tg.b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeContains, tg.startHandler)
+	tg.b.RegisterHandler(bot.HandlerTypeMessageText, "/admin", bot.MatchTypeContains, tg.adminHandler)
 	tg.b.SetDefaultHandler(tg.defaultHandler)
 }
 
@@ -66,20 +71,22 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 	err := tb.store.User.Create(user)
 	if err != nil {
 		slog.Error(err.Error())
-		tb.botError(ctx, update, "internal error while creating user")
+		tb.informUser(ctx, int64(user.ID), "")
 		return
 	}
-	err = tb.store.Subscription.CreateStandardSubscription(user.ID)
+	err = tb.store.Subscription.InitStandard(user.ID)
 	if err != nil {
 		slog.Error(err.Error())
-		tb.botError(ctx, update, "internal error while creating user")
+		tb.informUser(ctx, int64(user.ID), "")
 		return
 	}
 
-	token, err := utils.SignJWT(user.ID)
+	token := utils.NewToken()
+	token.SetUserID(user.ID)
+	err = token.SignJWT()
 	if err != nil {
 		slog.Error(err.Error())
-		tb.botError(ctx, update, "internal erorr while create jwt token")
+		tb.informUser(ctx, int64(user.ID), "")
 		return
 	}
 
@@ -88,41 +95,41 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 		refCode := &msgSlice[1]
 		id, err := tb.store.User.IsUserReferred(user.ID, *refCode)
 		if err != nil {
-			tb.botError(ctx, update, "internal error")
+			tb.informUser(ctx, int64(user.ID), "")
 			return
 		}
 		if id != 0 {
-			tb.botError(ctx, update, "referral link can't be used twice")
+			tb.informUser(ctx, int64(user.ID), "")
 			return
 		}
 
-		ownerID, err := tb.store.User.OwnerReferralCode(*refCode)
+		ownerID, err := tb.store.User.OwnerOfReferralCode(*refCode)
 		if errors.Is(err, sql.ErrNoRows) {
-			tb.botError(ctx, update, "referral link doesn't exists")
+			tb.informUser(ctx, int64(user.ID), "")
 			return
 		}
 		if err != nil {
 			slog.Error(err.Error())
-			tb.botError(ctx, update, "internal error")
+			tb.informUser(ctx, int64(user.ID), "")
 			return
 		}
 
-		award, err := tb.store.Bonus.GetReferralAward()
+		award, err := tb.store.Bonus.GetAward("referral")
 		if err != nil {
 			slog.Error(err.Error())
-			tb.botError(ctx, update, "internal error while realese ref link")
+			tb.informUser(ctx, int64(user.ID), "")
 			return
 		}
 		err = tb.store.User.RaiseBalance(ownerID, award)
 		if err != nil {
 			slog.Error(err.Error())
-			tb.botError(ctx, update, "internal error while raise referred balance")
+			tb.informUser(ctx, int64(user.ID), "")
 			return
 		}
 		err = tb.store.User.SetReferredBy(user.ID, *refCode)
 		if err != nil {
 			slog.Error(err.Error())
-			tb.botError(ctx, update, "internal error")
+			tb.informUser(ctx, int64(user.ID), "")
 			return
 		}
 	}
@@ -133,7 +140,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 			Type: "web_app",
 			Text: "Open Mini App",
 			WebApp: models.WebAppInfo{
-				URL: tb.webAppUrl + "?" + token,
+				URL: tb.telegram.GetWebAppUrl() + "?" + token.GetStrToken(),
 			},
 		},
 	})
@@ -164,35 +171,37 @@ func (tb tgBot) getTelegramAvatar(ctx context.Context, userID int64) string {
 	return url
 }
 
-func (tb tgBot) botError(ctx context.Context, update *models.Update, errorMsg string) {
+func (tb tgBot) informUser(ctx context.Context, userID int64, errorMsg string) {
 	tb.b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID: update.Message.Chat.ID,
+		ChatID: userID,
 		Text:   fmt.Sprintf("Error: %s", errorMsg),
 	})
 }
 
 func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	var subscriptionPayload db.SubscriptionModel
+
 	if update.PreCheckoutQuery != nil {
-		fmt.Println(update.PreCheckoutQuery)
-		fmt.Println(update.PreCheckoutQuery.InvoicePayload)
-		var subscriptionPayload db.SubscriptionPaymentModel
 		err := json.Unmarshal([]byte(update.PreCheckoutQuery.InvoicePayload), &subscriptionPayload)
 		if err != nil {
 			return
 		}
-		err = tb.store.Subscription.UpdateSubscription(subscriptionPayload.UserID, subscriptionPayload.Name, subscriptionPayload.End)
+		err = tb.store.Subscription.Update(subscriptionPayload.UserID, subscriptionPayload.Name, subscriptionPayload.End)
 		if err != nil {
 			slog.Error(err.Error())
+			tb.informUser(ctx, int64(subscriptionPayload.UserID), "")
 			return
 		}
-		diamonds, err := tb.store.Subscription.SubscriptionInfo(subscriptionPayload.Name)
+		diamonds, err := tb.store.Subscription.Info(subscriptionPayload.Name)
 		if err != nil {
 			slog.Error(err.Error())
+			tb.informUser(ctx, int64(subscriptionPayload.UserID), "")
 			return
 		}
 		err = tb.store.User.FillBalance(subscriptionPayload.UserID, diamonds)
 		if err != nil {
 			slog.Error(err.Error())
+			tb.informUser(ctx, int64(subscriptionPayload.UserID), "")
 			return
 		}
 
@@ -206,11 +215,32 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 
 	if update.Message != nil {
 		if update.Message.SuccessfulPayment != nil {
+			err := json.Unmarshal([]byte(update.Message.SuccessfulPayment.InvoicePayload), &subscriptionPayload)
+			if err != nil {
+				return
+			}
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
-				Text:   "Payment was done!",
+				Text:   fmt.Sprintf("Вы успешно купили подписку **%s** за *%d* звезд!\nВаша подписка доступна до: "),
 			})
 			return
 		}
 	}
+}
+
+func (tb tgBot) adminHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	msgSlice := strings.Split(update.Message.Text, " ")
+	if len(msgSlice) == 1 {
+		tb.informUser(ctx, update.Message.From.ID, "")
+		return
+	}
+	password := msgSlice[1]
+	if tb.telegram.GetAdminPassword() != password {
+		tb.informUser(ctx, update.Message.From.ID, "")
+	}
+
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: update.Message.From.ID,
+		Text:   "You are an admin!",
+	})
 }

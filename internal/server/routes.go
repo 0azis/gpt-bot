@@ -37,9 +37,9 @@ func messageRoutes(apiRoute *echo.Group, store db.Store, api api.Interface) {
 	message := apiRoute.Group("/messages")
 	controller := controllers.NewMessageControllers(api, store)
 
-	message.POST("/chat", controller.NewMessage)
-	message.POST("/chat/:id", controller.ChatMessage)
 	message.GET("/chat/:id", controller.GetMessages)
+	message.POST("/chat", controller.NewMessage)
+	message.POST("/chat/:id", controller.NewMessageToChat)
 }
 
 func paymentRoutes(apiRoute *echo.Group, b *bot.Bot) {

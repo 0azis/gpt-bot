@@ -13,7 +13,7 @@ import (
 
 type messageControllers interface {
 	NewMessage(c echo.Context) error
-	ChatMessage(c echo.Context) error
+	NewMessageToChat(c echo.Context) error
 	GetMessages(c echo.Context) error
 
 	modelAnswer(chat db.ChatModel, msg []db.MessageModel) (string, error)
@@ -35,6 +35,15 @@ func (m message) NewMessage(c echo.Context) error {
 	err := c.Bind(&msgCredentials)
 	if err != nil || !msgCredentials.Valid() {
 		return c.JSON(400, nil)
+	}
+
+	balance, err := m.store.User.GetBalance(jwtUserID)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
+	}
+	if balance == 0 {
+		return c.JSON(403, nil)
 	}
 
 	newChat := db.ChatModel{
@@ -87,7 +96,7 @@ func (m message) NewMessage(c echo.Context) error {
 	return c.JSON(200, chatID)
 }
 
-func (m message) ChatMessage(c echo.Context) error {
+func (m message) NewMessageToChat(c echo.Context) error {
 	jwtUserID := utils.ExtractUserID(c)
 	value := c.Param("id")
 	chatID, err := strconv.Atoi(value)
@@ -101,15 +110,29 @@ func (m message) ChatMessage(c echo.Context) error {
 		return c.JSON(400, nil)
 	}
 
-	chat, err := m.store.Chat.GetChatInfo(chatID)
+	balance, err := m.store.User.GetBalance(jwtUserID)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
+	}
+	if balance == 0 {
+		return c.JSON(403, nil)
+	}
+
+	chat, err := m.store.Chat.GetByID(chatID)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
 
 	userMsg := db.NewUserMessage(chat.ID, msgCredentials.Content)
+	err = m.store.Message.Create(userMsg)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
+	}
 
-	messages, err := m.store.Message.GetMessages(jwtUserID, chat.ID)
+	messages, err := m.store.Message.GetByChat(jwtUserID, chat.ID)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
@@ -122,12 +145,6 @@ func (m message) ChatMessage(c echo.Context) error {
 	}
 
 	answer, err := m.modelAnswer(chat, messages)
-	if err != nil {
-		slog.Error(err.Error())
-		return c.JSON(500, nil)
-	}
-
-	err = m.store.Message.Create(userMsg)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
@@ -151,7 +168,7 @@ func (m message) GetMessages(c echo.Context) error {
 		return c.JSON(400, nil)
 	}
 
-	messages, err := m.store.Message.GetMessages(jwtUserID, chatID)
+	messages, err := m.store.Message.GetByChat(jwtUserID, chatID)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)

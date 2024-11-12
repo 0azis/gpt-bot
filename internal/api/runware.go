@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 )
 
@@ -17,6 +18,10 @@ type runwareClient struct {
 	token string
 }
 
+func newRunware(token string) runwareInterface {
+	return runwareClient{token}
+}
+
 type requestBody struct {
 	TaskType       string `json:"taskType"`
 	TaskUUID       string `json:"taskUUID"`
@@ -27,11 +32,9 @@ type requestBody struct {
 }
 
 type responseBody struct {
-	Data []data `json:"data"`
-}
-
-type data struct {
-	ImageURL string `json:"imageURL"`
+	Data []struct {
+		ImageURL string `json:"imageURL"`
+	} `json:"data"`
 }
 
 func newBody(prompt string) requestBody {
@@ -45,10 +48,6 @@ func newBody(prompt string) requestBody {
 	}
 }
 
-func newRunware(token string) runwareInterface {
-	return runwareClient{token}
-}
-
 func (rc runwareClient) SendMessage(prompt string) (string, error) {
 	var imageLink string
 	var body []requestBody
@@ -56,11 +55,13 @@ func (rc runwareClient) SendMessage(prompt string) (string, error) {
 
 	b, err := json.Marshal(body)
 	if err != nil {
+		slog.Error(err.Error())
 		return imageLink, err
 	}
 
 	req, err := http.NewRequest("POST", baseUrl, bytes.NewBuffer(b))
 	if err != nil {
+		slog.Error(err.Error())
 		return imageLink, err
 	}
 	req.Header = http.Header{
@@ -71,6 +72,7 @@ func (rc runwareClient) SendMessage(prompt string) (string, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		slog.Error(err.Error())
 		return imageLink, err
 	}
 	defer resp.Body.Close()
@@ -78,6 +80,7 @@ func (rc runwareClient) SendMessage(prompt string) (string, error) {
 	var respBody responseBody
 	err = json.NewDecoder(resp.Body).Decode(&respBody)
 	if err != nil {
+		slog.Error(err.Error())
 		return imageLink, err
 	}
 

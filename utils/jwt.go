@@ -8,41 +8,79 @@ import (
 )
 
 var (
-	SECRET_HASH        []byte = config.JwtSecretHash()
-	TOKEN_TIME_ACCESS  int64  = 1000
-	TOKEN_TIME_REFRESH int64  = 432000
+	TOKEN_TIME_ACCESS  int64 = 1000
+	TOKEN_TIME_REFRESH int64 = 432000
 )
 
-type tokenPayload struct {
-	UserID         int
+type tokenInterface interface {
+	// getter
+	GetUserID() int
+	GetStrToken() string
+
+	// setter
+	SetUserID(userID int)
+	SetStrToken(token string)
+
+	// methods
+	SignJWT() error
+	GetIdentity() error
+}
+
+type token struct {
+	userID         int
+	str            string
+	secretHash     []byte
 	expirationTime int64
 }
 
-func SignJWT(userId int) (string, error) {
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		// Создаем payload структуру
-		"id": userId,                                       // UserId для идентификации пользователя
-		"e":  int64(time.Now().Unix()) + TOKEN_TIME_ACCESS, // expiredTime для безопасности
-	}).SignedString(SECRET_HASH)
-	return token, err
+func NewToken() tokenInterface {
+	return &token{
+		secretHash: config.JwtSecretHash(),
+	}
 }
 
-func GetIdentity(token string) (tokenPayload, error) {
-	var jwtPayload tokenPayload
-	identity, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-		return SECRET_HASH, nil
+func (t *token) GetUserID() int {
+	return t.userID
+}
+
+func (t *token) GetStrToken() string {
+	return t.str
+}
+
+func (t *token) SetUserID(userID int) {
+	t.userID = userID
+}
+
+func (t *token) SetStrToken(token string) {
+	t.str = token
+}
+
+func (t *token) SignJWT() error {
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		// Создаем payload структуру
+		"id": t.userID,                                     // UserId для идентификации пользователя
+		"e":  int64(time.Now().Unix()) + TOKEN_TIME_ACCESS, // expiredTime для безопасности
+	}).SignedString(t.secretHash)
+	t.str = token
+
+	return err
+}
+
+func (t *token) GetIdentity() error {
+	identity, err := jwt.Parse(t.str, func(token *jwt.Token) (interface{}, error) {
+		return t.secretHash, nil
 	})
 
 	if err != nil {
-		return jwtPayload, err
+		return err
 	}
 
 	values := identity.Claims.(jwt.MapClaims)
 	userId := int(values["id"].(float64))
 	expiredTime := int64(values["e"].(float64))
 
-	jwtPayload.UserID = userId
-	jwtPayload.expirationTime = expiredTime
+	t.userID = userId
+	t.expirationTime = expiredTime
 
-	return jwtPayload, nil
+	return nil
 }

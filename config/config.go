@@ -2,48 +2,82 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 )
 
 // Config
 type Config struct {
-	Server    server
-	Db        database
-	Tokens    tokens
-	WebAppUrl string
+	Server   Server
+	Database Database
+	Api      Api
+	Telegram Telegram
 }
 
 func New() Config {
 	server := newServer()
 	db := newDatabase()
-	tokens := newTokens()
+	api := newApi()
+	telegram := newTelegram()
 	return Config{
-		Server:    server,
-		Db:        db,
-		Tokens:    tokens,
-		WebAppUrl: getEnv("WEB_APP_URL", ""),
+		Server:   server,
+		Database: db,
+		Api:      api,
+		Telegram: telegram,
 	}
 }
 
+func (c Config) IsValid() bool {
+	if !c.Server.IsValid() {
+		attr := slog.Any("server", c.Server)
+		slog.Info("", attr)
+		return false
+	}
+
+	if !c.Database.IsValid() {
+		attr := slog.Any("database", c.Database)
+		slog.Info("", attr)
+		return false
+	}
+
+	if !c.Api.IsValid() {
+		attr := slog.Any("api", c.Api)
+		slog.Info("", attr)
+		return false
+	}
+
+	if !c.Telegram.IsValid() {
+		attr := slog.Any("telegram", c.Telegram)
+		slog.Info("", attr)
+		return false
+	}
+
+	return true
+}
+
 // server config
-type server struct {
+type Server struct {
 	host string
 	port string
 }
 
-func (s server) Addr() string {
+func (s Server) IsValid() bool {
+	return s.host != "" && s.port != "" && string(JwtSecretHash()) != ""
+}
+
+func (s Server) Addr() string {
 	return s.host + ":" + s.port
 }
 
-func newServer() server {
-	return server{
-		host: getEnv("HTTP_HOST", "localhost"),
-		port: getEnv("HTTP_PORT", "5000"),
+func newServer() Server {
+	return Server{
+		host: getEnv("HTTP_HOST"),
+		port: getEnv("HTTP_PORT"),
 	}
 }
 
 // database config
-type database struct {
+type Database struct {
 	host     string
 	port     string
 	name     string
@@ -51,58 +85,85 @@ type database struct {
 	password string
 }
 
-func (d database) Addr() string {
+func (d Database) IsValid() bool {
+	return d.host != "" && d.port != "" && d.name != "" && d.user != "" && d.password != ""
+}
+func (d Database) Addr() string {
 	uri := fmt.Sprintf("%s:%s@(%s:%s)/%s?parseTime=true", d.user, d.password, d.host, d.port, d.name)
 	return uri
 }
 
-func newDatabase() database {
-	return database{
-		host:     getEnv("DATABASE_HOST", "localhost"),
-		port:     getEnv("DATABASE_POST", "3306"),
-		name:     getEnv("DATABASE_NAME", ""),
-		user:     getEnv("DATABASE_USER", ""),
-		password: getEnv("DATABASE_PASSWORD", ""),
+func newDatabase() Database {
+	return Database{
+		host:     getEnv("DATABASE_HOST"),
+		port:     getEnv("DATABASE_PORT"),
+		name:     getEnv("DATABASE_NAME"),
+		user:     getEnv("DATABASE_USER"),
+		password: getEnv("DATABASE_PASSWORD"),
 	}
 }
 
-// tokens config
-type tokens struct {
-	telegram string
-	openai   string
-	runware  string
+type Api struct {
+	openai  string
+	runware string
 }
 
-func (t tokens) Telegram() string {
-	return t.telegram
+func (a Api) IsValid() bool {
+	return a.openai != "" && a.runware != ""
 }
 
-func (t tokens) OpenAI() string {
-	return t.openai
+func (a Api) OpenAI() string {
+	return a.openai
 }
 
-func (t tokens) Runware() string {
-	return t.runware
+func (a Api) Runware() string {
+	return a.runware
 }
 
-func newTokens() tokens {
-	return tokens{
-		telegram: getEnv("TELEGRAM_TOKEN", ""),
-		openai:   getEnv("OPENAI_TOKEN", ""),
-		runware:  getEnv("RUNWARE_TOKEN", ""),
+func newApi() Api {
+	return Api{
+		openai:  getEnv("API_OPENAI_TOKEN"),
+		runware: getEnv("API_RUNWARE_TOKEN"),
 	}
 }
 
-// type JwtSecretHash string
+type Telegram struct {
+	token         string
+	adminPassword string
+	webAppUrl     string
+}
+
+func (t Telegram) IsValid() bool {
+	return t.token != "" && t.adminPassword != "" && t.webAppUrl != ""
+}
+func (t Telegram) GetToken() string {
+	return t.token
+}
+
+func (t Telegram) GetAdminPassword() string {
+	return t.adminPassword
+}
+
+func (t Telegram) GetWebAppUrl() string {
+	return t.webAppUrl
+}
+
+func newTelegram() Telegram {
+	return Telegram{
+		token:         getEnv("TELEGRAM_TOKEN"),
+		adminPassword: getEnv("TELEGRAM_PASSWORD"),
+		webAppUrl:     getEnv("TELEGRAM_WEB_APP_URL"),
+	}
+}
 
 func JwtSecretHash() []byte {
-	return []byte(getEnv("JWT_SECRET_HASH", ""))
+	return []byte(getEnv("HTTP_JWT_SECRET_HASH"))
 }
 
 // helper function
-func getEnv(key string, defaultValue string) string {
+func getEnv(key string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
-	return defaultValue
+	return ""
 }
