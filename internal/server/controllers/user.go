@@ -12,17 +12,15 @@ import (
 
 type userControllers interface {
 	GetUser(c echo.Context) error
-	// GetReferralCode(c echo.Context) error
 }
 
 type user struct {
 	store db.Store
 }
 
-// GetUser returns a user by access token
 func (u user) GetUser(c echo.Context) error {
 	jwtUserID := utils.ExtractUserID(c)
-	user, err := u.store.User.GetUser(jwtUserID)
+	user, err := u.store.User.GetByID(jwtUserID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return c.JSON(404, nil)
 	}
@@ -34,7 +32,6 @@ func (u user) GetUser(c echo.Context) error {
 	return c.JSON(200, user)
 }
 
-// import all controllers
 func NewUserControllers(store db.Store) userControllers {
 	return user{store}
 }

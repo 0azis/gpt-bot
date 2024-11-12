@@ -22,16 +22,20 @@ func main() {
 
 	// init config
 	config := config.New()
+	if !config.IsValid() {
+		slog.Error("environment data isn't full")
+		return
+	}
 
 	// init database
-	store, err := db.New(config.Db.Addr())
+	store, err := db.New(config.Database)
 	if err != nil {
 		slog.Error("database connection was failed")
 		return
 	}
 
 	// init and start bot
-	bot, err := tgbot.New(config.Tokens.Telegram(), store, config.WebAppUrl)
+	bot, err := tgbot.New(config.Telegram, store)
 	if err != nil {
 		slog.Error("bot running failed")
 		return
@@ -47,17 +51,13 @@ func main() {
 		AllowMethods:     []string{echo.GET, echo.POST, echo.OPTIONS},
 		AllowCredentials: true,
 	}))
-	api := api.New(config)
-	// if err != nil {
-	// 	slog.Error("api connection failed")
-	// 	return
-	// }
+	api := api.New(config.Api)
 
 	// plug middlewares
 	e.Use(server.AuthMiddleware)
 
 	// init routes to it
-	server.InitRoutes(e, store, api)
+	server.InitRoutes(e, store, api, bot.Instance())
 
 	err = e.Start(config.Server.Addr())
 	if err != nil {

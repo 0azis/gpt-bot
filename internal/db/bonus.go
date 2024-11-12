@@ -15,21 +15,21 @@ type BonusModel struct {
 }
 
 type bonusRepository interface {
-	ChangeReferralAward(award int) error
-	GetReferralAward() (int, error)
+	ChangeAward(bonusType string, award int) error
+	GetAward(bonusType string) (int, error)
 }
 
 type bonus struct {
 	db *sqlx.DB
 }
 
-func (b bonus) ChangeReferralAward(award int) error {
-	_, err := b.db.Query(`update bonuses set award = ? where bonus_type = 'referral'`, award)
+func (b bonus) ChangeAward(bonusType string, award int) error {
+	_, err := b.db.Query(`update bonuses set award = ? where bonus_type = ?`, award, bonusType)
 	return err
 }
 
-func (b bonus) GetReferralAward() (int, error) {
+func (b bonus) GetAward(bonus_type string) (int, error) {
 	var award int
-	err := b.db.Get(&award, `select award from bonuses where bonus_type = 'referral'`)
+	err := b.db.Get(&award, `select award from bonuses where bonus_type = ?`, bonus_type)
 	return award, err
 }

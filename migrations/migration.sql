@@ -1,6 +1,5 @@
 CREATE TABLE users(
     id bigint not null,
-    subscription enum('standard', 'advanced', 'ultimate') default 'standard' not null,
     avatar varchar(255) not null,
     balance int default 150 not null,
     referral_code varchar(255),
@@ -34,13 +33,22 @@ CREATE TABLE bonuses(
     primary key(id)
 );
 
-CREATE TABLE subscriptions(
+CREATE TABLE subscriptions_info(
     name enum('standard', 'advanced', 'ultimate') not null,
     diamonds smallint not null,
     primary key(name)
 );
 
+CREATE TABLE subscriptions(
+    user_id bigint not null,
+    name enum('standard', 'advanced', 'ultimate') default 'standard' not null,
+    start date default (current_date()),
+    end date default null,
+    foreign key (name) references subscriptions_info (name) on delete no action,
+    primary key(user_id)
+);
+
 INSERT INTO bonuses (award, bonus_type) values (10, 'referral');
-INSERT INTO subscriptions(name, diamonds) values ('standard', 150);
-INSERT INTO subscriptions(name, diamonds) values ('advanced', 1500);
-INSERT INTO subscriptions(name, diamonds) values ('ultimate', 3000);
+INSERT INTO subscriptions_info(name, diamonds) values ('standard', 150);
+INSERT INTO subscriptions_info(name, diamonds) values ('advanced', 1500);
+INSERT INTO subscriptions_info(name, diamonds) values ('ultimate', 3000);

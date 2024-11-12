@@ -18,7 +18,7 @@ type chat struct {
 
 func (ch chat) GetChats(c echo.Context) error {
 	userID := utils.ExtractUserID(c)
-	chats, err := ch.store.Chat.GetChats(userID)
+	chats, err := ch.store.Chat.GetByUser(userID)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)

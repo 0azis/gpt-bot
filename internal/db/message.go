@@ -8,8 +8,8 @@ import (
 const PriceOfMessage int = 10
 
 type MessageModel struct {
-	ID      int    `json:"-" db:"-"`
-	ChatID  int    `json:"-" db:"-"`
+	ID      int    `json:"-"`
+	ChatID  int    `json:"-"`
 	Content string `json:"content" db:"content"`
 	Role    string `json:"role" db:"role"`
 }
@@ -40,7 +40,7 @@ func (mc MessageCredentials) Valid() bool {
 
 type messageRepository interface {
 	Create(msg MessageModel) error
-	GetMessages(userID, chatID int) ([]MessageModel, error)
+	GetByChat(userID, chatID int) ([]MessageModel, error)
 }
 
 type message struct {
@@ -52,7 +52,7 @@ func (m message) Create(msg MessageModel) error {
 	return err
 }
 
-func (m message) GetMessages(userID, chatID int) ([]MessageModel, error) {
+func (m message) GetByChat(userID, chatID int) ([]MessageModel, error) {
 	var messages []MessageModel
 	err := m.db.Select(&messages, `select messages.content, messages.role from messages inner join chats on chats.id = messages.chat_id where messages.chat_id = ? and chats.user_id = ?`, chatID, userID)
 	return messages, err
