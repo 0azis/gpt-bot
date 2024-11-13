@@ -28,6 +28,8 @@ type BotInterface interface {
 	defaultHandler(ctx context.Context, b *bot.Bot, update *models.Update)
 
 	// helpers
+	CreateInvoiceLink(payload []byte, paymentCredentials db.SubscriptionModel) (string, error)
+	PaymentInfo(paymentCredentials db.SubscriptionModel)
 	getTelegramAvatar(ctx context.Context, userID int64) string
 	informUser(ctx context.Context, userID int64, errMsg string)
 }
@@ -179,11 +181,33 @@ func (tb tgBot) getTelegramAvatar(ctx context.Context, userID int64) string {
 	return url
 }
 
+func (tb tgBot) CreateInvoiceLink(payload []byte, paymentCredentials db.SubscriptionModel) (string, error) {
+	link, err := tb.b.CreateInvoiceLink(context.Background(), &bot.CreateInvoiceLinkParams{
+		Title:       fmt.Sprintf("%s subscription", paymentCredentials.Name),
+		Description: "Buy subscription",
+		Payload:     string(payload),
+		Currency:    "XTR",
+		Prices: []models.LabeledPrice{
+			{Label: paymentCredentials.Name, Amount: paymentCredentials.Amount},
+		},
+	})
+	return link, err
+}
+
 func (tb tgBot) informUser(ctx context.Context, userID int64, errorMsg string) {
 	tb.b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: userID,
 		Text:   fmt.Sprintf("%s", errorMsg),
 	})
+}
+
+func (tb tgBot) PaymentInfo(paymentCredentials db.SubscriptionModel) {
+	_, err := tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
+		ChatID:    paymentCredentials.UserID,
+		Text:      fmt.Sprintf(`Вы успешно купили подписку **%s** за *%d* звезд\\nВаша подписка доступна до: %s`, paymentCredentials.Name, paymentCredentials.Amount, paymentCredentials.End),
+		ParseMode: models.ParseModeMarkdown,
+	})
+	fmt.Println(err)
 }
 
 func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -236,10 +260,7 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 				tb.informUser(ctx, update.Message.From.ID, internalError)
 				return
 			}
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   fmt.Sprintf("Вы успешно купили подписку **%s** за *%d* звезд!\nВаша подписка доступна до: %s", subscriptionPayload.Name, subscriptionPayload.Amount, subscriptionPayload.End),
-			})
+			tb.PaymentInfo(subscriptionPayload)
 			return
 		}
 	}

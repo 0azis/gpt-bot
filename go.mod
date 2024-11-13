@@ -14,6 +14,7 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/0azis/bot v0.0.0-20240427201326-c2b26a29d6ff // indirect
+	github.com/arthurshafikov/cryptobot-sdk-golang v1.1.6 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jonboulle/clockwork v0.4.0 // indirect

@@ -1,12 +1,15 @@
 package db
 
 import (
-	"fmt"
 	"gpt-bot/utils"
+	"slices"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
 )
+
+var types []string = []string{"stars", "crypto"}
+var assets []string = []string{"USDT", "TON", "BTC", "ETH", "LTC", "BNB", "TRX", "USDC", "JET"}
 
 var subscriptions map[string]int = map[string]int{
 	"advanced-month": 1,
@@ -29,12 +32,19 @@ type subscription struct {
 type SubscriptionModel struct {
 	UserID int    `json:"userId"`
 	Name   string `json:"name"`
+	Type   string `json:"type"`
+	Asset  string `json:"asset"`
 	Amount int    `json:"amount"`
 	End    string `json:"end"`
 }
 
 func (sc SubscriptionModel) Valid() bool {
-	fmt.Println(sc)
+	if !slices.Contains(assets, sc.Asset) {
+		return false
+	}
+	if !slices.Contains(types, sc.Type) {
+		return false
+	}
 	if _, ok := subscriptions[sc.Name]; !ok {
 		return false
 	}
