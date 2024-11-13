@@ -47,13 +47,13 @@ func main() {
 	// init and http server
 	e := echo.New()
 	// plug middlewares
-	e.Use(server.AuthMiddleware)
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"*"},
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, echo.HeaderContentLength},
 		AllowMethods:     []string{echo.GET, echo.POST, echo.OPTIONS},
 		AllowCredentials: true,
 	}))
+	e.Use(server.AuthMiddleware)
 
 	// init api
 	api := api.New(config.Api)
