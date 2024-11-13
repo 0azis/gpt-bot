@@ -2,8 +2,8 @@ CREATE TABLE users(
     id bigint not null,
     avatar varchar(255) not null,
     balance int default 150 not null,
-    referral_code varchar(255),
-    referred_by varchar(255),
+    referral_code varchar(5),
+    referred_by varchar(5),
     primary key(id)
 );
 
@@ -11,7 +11,7 @@ CREATE TABLE chats (
     id smallint not null auto_increment,
     user_id bigint not null,
     title varchar(255),
-    model varchar(255) not null,
+    model enum('o1-preview', 'gpt-4o', 'o1-mini', 'gpt-4o-mini', 'dall-e-3', 'runware') not null,
     type enum('text', 'image') not null,
     foreign key (user_id) references users (id) on delete cascade,
     primary key(id)
@@ -29,7 +29,7 @@ CREATE TABLE messages(
 CREATE TABLE bonuses(
     id smallint not null auto_increment,
     award tinyint not null,
-    bonus_type varchar(255) not null,
+    bonus_type enum('referral') not null,
     primary key(id)
 );
 
@@ -44,7 +44,7 @@ CREATE TABLE subscriptions(
     name enum('standard', 'advanced', 'ultimate') default 'standard' not null,
     start date default (current_date()),
     end date default null,
-    foreign key (name) references subscriptions_info (name) on delete no action,
+    foreign key (user_id) references users (id) on delete cascade,
     primary key(user_id)
 );
 

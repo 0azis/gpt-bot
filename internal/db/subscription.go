@@ -17,8 +17,9 @@ var subscriptions map[string]int = map[string]int{
 
 type subscriptionRepository interface {
 	InitStandard(userID int) error
+	EndTime() error
 	Update(userID int, name string, end string) error
-	Info(name string) (int, error)
+	DailyDiamonds(name string) (int, error)
 }
 
 type subscription struct {
@@ -64,12 +65,17 @@ func (s subscription) InitStandard(userID int) error {
 	return err
 }
 
+func (s subscription) EndTime() error {
+	_, err := s.db.Query(`update subscriptions set name = 'standard', start = (current_date()), end = null where end < now()`)
+	return err
+}
+
 func (s subscription) Update(userID int, name string, end string) error {
 	_, err := s.db.Query(`update subscriptions set name = ?, end = ? where user_id = ?`, name, end, userID)
 	return err
 }
 
-func (s subscription) Info(name string) (int, error) {
+func (s subscription) DailyDiamonds(name string) (int, error) {
 	var diamonds int
 	err := s.db.Get(&diamonds, `select diamonds from subscriptions_info where name = ?`, name)
 	return diamonds, err

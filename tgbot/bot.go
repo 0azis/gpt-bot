@@ -140,7 +140,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 			Type: "web_app",
 			Text: "Open Mini App",
 			WebApp: models.WebAppInfo{
-				URL: tb.telegram.GetWebAppUrl() + "?" + token.GetStrToken(),
+				URL: tb.telegram.GetWebAppUrl() + "?token=" + token.GetStrToken(),
 			},
 		},
 	})
@@ -192,7 +192,7 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 			tb.informUser(ctx, int64(subscriptionPayload.UserID), "")
 			return
 		}
-		diamonds, err := tb.store.Subscription.Info(subscriptionPayload.Name)
+		diamonds, err := tb.store.Subscription.DailyDiamonds(subscriptionPayload.Name)
 		if err != nil {
 			slog.Error(err.Error())
 			tb.informUser(ctx, int64(subscriptionPayload.UserID), "")
@@ -221,7 +221,7 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 			}
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
-				Text:   fmt.Sprintf("Вы успешно купили подписку **%s** за *%d* звезд!\nВаша подписка доступна до: "),
+				Text:   fmt.Sprintf("Вы успешно купили подписку **%s** за *%d* звезд!\nВаша подписка доступна до: %s", subscriptionPayload.Name, subscriptionPayload.Amount, subscriptionPayload.End),
 			})
 			return
 		}

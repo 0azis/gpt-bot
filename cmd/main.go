@@ -2,6 +2,7 @@ package main
 
 import (
 	"gpt-bot/config"
+	"gpt-bot/cron"
 	"gpt-bot/internal/api"
 	"gpt-bot/internal/db"
 	"gpt-bot/internal/server"
@@ -45,16 +46,21 @@ func main() {
 
 	// init and http server
 	e := echo.New()
+	// plug middlewares
+	e.Use(server.AuthMiddleware)
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"*"},
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, echo.HeaderContentLength},
 		AllowMethods:     []string{echo.GET, echo.POST, echo.OPTIONS},
 		AllowCredentials: true,
 	}))
+
+	// init api
 	api := api.New(config.Api)
 
-	// plug middlewares
-	e.Use(server.AuthMiddleware)
+	// init cron manager
+	cronManager := cron.Init(store)
+	cronManager.Run()
 
 	// init routes to it
 	server.InitRoutes(e, store, api, bot.Instance())
