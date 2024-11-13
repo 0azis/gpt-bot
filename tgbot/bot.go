@@ -71,13 +71,13 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 	err := tb.store.User.Create(user)
 	if err != nil {
 		slog.Error(err.Error())
-		tb.informUser(ctx, int64(user.ID), "")
+		tb.informUser(ctx, int64(user.ID), userCreationError)
 		return
 	}
 	err = tb.store.Subscription.InitStandard(user.ID)
 	if err != nil {
 		slog.Error(err.Error())
-		tb.informUser(ctx, int64(user.ID), "")
+		tb.informUser(ctx, int64(user.ID), userCreationError)
 		return
 	}
 
@@ -86,7 +86,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 	err = token.SignJWT()
 	if err != nil {
 		slog.Error(err.Error())
-		tb.informUser(ctx, int64(user.ID), "")
+		tb.informUser(ctx, int64(user.ID), userCreationError)
 		return
 	}
 
@@ -95,46 +95,50 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 		refCode := &msgSlice[1]
 		id, err := tb.store.User.IsUserReferred(user.ID, *refCode)
 		if err != nil {
-			tb.informUser(ctx, int64(user.ID), "")
+			tb.informUser(ctx, int64(user.ID), internalError)
 			return
 		}
 		if id != 0 {
-			tb.informUser(ctx, int64(user.ID), "")
+			tb.informUser(ctx, int64(user.ID), userAlreadyReferred)
 			return
 		}
 
 		ownerID, err := tb.store.User.OwnerOfReferralCode(*refCode)
 		if errors.Is(err, sql.ErrNoRows) {
-			tb.informUser(ctx, int64(user.ID), "")
+			tb.informUser(ctx, int64(user.ID), referralInvalid)
+			return
+		}
+		if ownerID == user.ID {
+			tb.informUser(ctx, int64(user.ID), referralSameUser)
 			return
 		}
 		if err != nil {
 			slog.Error(err.Error())
-			tb.informUser(ctx, int64(user.ID), "")
+			tb.informUser(ctx, int64(user.ID), internalError)
 			return
 		}
 
 		award, err := tb.store.Bonus.GetAward("referral")
 		if err != nil {
 			slog.Error(err.Error())
-			tb.informUser(ctx, int64(user.ID), "")
+			tb.informUser(ctx, int64(user.ID), internalError)
 			return
 		}
 		err = tb.store.User.RaiseBalance(ownerID, award)
 		if err != nil {
 			slog.Error(err.Error())
-			tb.informUser(ctx, int64(user.ID), "")
+			tb.informUser(ctx, int64(user.ID), internalError)
 			return
 		}
 		err = tb.store.User.SetReferredBy(user.ID, *refCode)
 		if err != nil {
 			slog.Error(err.Error())
-			tb.informUser(ctx, int64(user.ID), "")
+			tb.informUser(ctx, int64(user.ID), internalError)
 			return
 		}
 	}
 
-	b.SetChatMenuButton(ctx, &bot.SetChatMenuButtonParams{
+	_, err = b.SetChatMenuButton(ctx, &bot.SetChatMenuButtonParams{
 		ChatID: update.Message.Chat.ID,
 		MenuButton: models.MenuButtonWebApp{
 			Type: "web_app",
@@ -144,6 +148,10 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 			},
 		},
 	})
+	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, miniAppError)
+	}
 
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
@@ -174,7 +182,7 @@ func (tb tgBot) getTelegramAvatar(ctx context.Context, userID int64) string {
 func (tb tgBot) informUser(ctx context.Context, userID int64, errorMsg string) {
 	tb.b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: userID,
-		Text:   fmt.Sprintf("Error: %s", errorMsg),
+		Text:   fmt.Sprintf("%s", errorMsg),
 	})
 }
 
@@ -184,32 +192,39 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 	if update.PreCheckoutQuery != nil {
 		err := json.Unmarshal([]byte(update.PreCheckoutQuery.InvoicePayload), &subscriptionPayload)
 		if err != nil {
+			slog.Error(err.Error())
 			return
 		}
 		err = tb.store.Subscription.Update(subscriptionPayload.UserID, subscriptionPayload.Name, subscriptionPayload.End)
 		if err != nil {
 			slog.Error(err.Error())
-			tb.informUser(ctx, int64(subscriptionPayload.UserID), "")
+			tb.informUser(ctx, int64(subscriptionPayload.UserID), internalError)
 			return
 		}
 		diamonds, err := tb.store.Subscription.DailyDiamonds(subscriptionPayload.Name)
 		if err != nil {
 			slog.Error(err.Error())
-			tb.informUser(ctx, int64(subscriptionPayload.UserID), "")
+			tb.informUser(ctx, int64(subscriptionPayload.UserID), internalError)
 			return
 		}
 		err = tb.store.User.FillBalance(subscriptionPayload.UserID, diamonds)
 		if err != nil {
 			slog.Error(err.Error())
-			tb.informUser(ctx, int64(subscriptionPayload.UserID), "")
+			tb.informUser(ctx, int64(subscriptionPayload.UserID), internalError)
 			return
 		}
 
-		b.AnswerPreCheckoutQuery(ctx, &bot.AnswerPreCheckoutQueryParams{
+		_, err = b.AnswerPreCheckoutQuery(ctx, &bot.AnswerPreCheckoutQueryParams{
 			PreCheckoutQueryID: update.PreCheckoutQuery.ID,
 			OK:                 true,
 			ErrorMessage:       "",
 		})
+		if err != nil {
+			slog.Error(err.Error())
+			tb.informUser(ctx, int64(subscriptionPayload.UserID), paymentError)
+			return
+		}
+
 		return
 	}
 
@@ -217,6 +232,8 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 		if update.Message.SuccessfulPayment != nil {
 			err := json.Unmarshal([]byte(update.Message.SuccessfulPayment.InvoicePayload), &subscriptionPayload)
 			if err != nil {
+				slog.Error(err.Error())
+				tb.informUser(ctx, update.Message.From.ID, internalError)
 				return
 			}
 			b.SendMessage(ctx, &bot.SendMessageParams{
@@ -231,12 +248,13 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 func (tb tgBot) adminHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	msgSlice := strings.Split(update.Message.Text, " ")
 	if len(msgSlice) == 1 {
-		tb.informUser(ctx, update.Message.From.ID, "")
+		tb.informUser(ctx, update.Message.From.ID, adminPanelEnterPassword)
 		return
 	}
 	password := msgSlice[1]
 	if tb.telegram.GetAdminPassword() != password {
-		tb.informUser(ctx, update.Message.From.ID, "")
+		tb.informUser(ctx, update.Message.From.ID, adminPanelWrondPassword)
+		return
 	}
 
 	b.SendMessage(ctx, &bot.SendMessageParams{

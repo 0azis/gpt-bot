@@ -82,7 +82,7 @@ func (u user) GetAll() ([]UserModel, error) {
 
 func (u user) IsUserReferred(userID int, refCode string) (int, error) {
 	var id int
-	rows, err := u.db.Query(`select id from users where referred_by = ? and id = ?`, refCode, userID)
+	rows, err := u.db.Query(`select id from users where (referred_by = ? or referred_by != "") and id = ?`, refCode, userID)
 	if err != nil {
 		return id, err
 	}
