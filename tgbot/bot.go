@@ -140,7 +140,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 			Type: "web_app",
 			Text: "Open Mini App",
 			WebApp: models.WebAppInfo{
-				URL: tb.telegram.GetWebAppUrl() + "?" + token.GetStrToken(),
+				URL: tb.telegram.GetWebAppUrl() + "?token=" + token.GetStrToken(),
 			},
 		},
 	})
