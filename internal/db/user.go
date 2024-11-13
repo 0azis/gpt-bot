@@ -19,6 +19,7 @@ type userRepository interface {
 	// user
 	Create(user UserModel) error
 	GetByID(jwtUserID int) (UserModel, error)
+	GetAll() ([]UserModel, error)
 	// referral
 	IsUserReferred(userID int, refCode string) (int, error)
 	SetReferredBy(userID int, refBy string) error
@@ -43,20 +44,40 @@ func (u user) Create(user UserModel) error {
 
 func (u user) GetByID(jwtUserID int) (UserModel, error) {
 	var user UserModel
-	rows, err := u.db.Query(`select users.id, subscriptions.name, users.balance, users.avatar, users.balance, users.referral_code, users.referred_by from users left join subscriptions on subscriptions.user_id = users.id where id = ?`, jwtUserID)
+	rows, err := u.db.Query(`select users.id, subscriptions.name, users.balance, users.avatar, users.referral_code, users.referred_by from users left join subscriptions on subscriptions.user_id = users.id where id = ?`, jwtUserID)
 	if err != nil {
 		return user, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.Scan(&user.ID, &user.Subscription, &user.Balance, &user.Avatar, &user.Balance, &user.ReferralCode, &user.ReferredBy)
+		err = rows.Scan(&user.ID, &user.Subscription, &user.Balance, &user.Avatar, &user.ReferralCode, &user.ReferredBy)
 		if err != nil {
 			return user, err
 		}
 	}
 
 	return user, err
+}
+
+func (u user) GetAll() ([]UserModel, error) {
+	var users []UserModel
+	rows, err := u.db.Query(`select users.id, subscriptions.name, users.balance, users.avatar, users.referral_code, users.referred_by from users left join subscriptions on subscriptions.user_id = users.id`)
+	if err != nil {
+		return users, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var user UserModel
+		err = rows.Scan(&user.ID, &user.Subscription, &user.Balance, &user.Avatar, &user.ReferralCode, &user.ReferredBy)
+		if err != nil {
+			return users, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
 }
 
 func (u user) IsUserReferred(userID int, refCode string) (int, error) {
