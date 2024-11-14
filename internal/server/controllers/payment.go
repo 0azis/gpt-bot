@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"gpt-bot/internal/api"
 	"gpt-bot/internal/db"
+	"gpt-bot/internal/db/domain"
 	"gpt-bot/tgbot"
 	"gpt-bot/utils"
 	"io"
@@ -14,46 +15,55 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type subscriptionControllers interface {
+type paymentControllers interface {
 	CreateInvoiceLink(c echo.Context) error
 	Webhook(c echo.Context) error
 }
 
-type subscription struct {
-	api api.Interface
-	b   tgbot.BotInterface
+type payment struct {
+	store db.Store
+	api   api.Interface
+	b     tgbot.BotInterface
 }
 
-func (s subscription) CreateInvoiceLink(c echo.Context) error {
+func (p payment) CreateInvoiceLink(c echo.Context) error {
 	jwtUserID := utils.ExtractUserID(c)
 
-	var paymentCredentials db.SubscriptionModel
-	paymentCredentials.UserID = jwtUserID
-	err := c.Bind(&paymentCredentials)
-	if err != nil || !paymentCredentials.Valid() {
+	var payment domain.Payment
+	payment.UserID = jwtUserID
+	err := c.Bind(&payment)
+	if err != nil || !payment.Valid() {
 		return c.JSON(400, nil)
 	}
-	paymentCredentials.ToReadable()
+	payment.ToReadable()
 
-	payload, err := json.Marshal(paymentCredentials)
+	id, err := p.store.Subscription.UserSubscription(int64(jwtUserID), payment.SubscriptionName)
+	if err != nil {
+		return c.JSON(500, nil)
+	}
+	if id != 0 {
+		return c.JSON(400, nil)
+	}
+
+	payload, err := json.Marshal(payment)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
 
-	switch paymentCredentials.Type {
+	switch payment.Type {
 	case "stars":
-		link, err := s.b.CreateInvoiceLink(payload, paymentCredentials)
+		link, err := p.b.CreateInvoiceLink(payload, payment)
 		if err != nil {
 			slog.Error(err.Error())
 			return c.JSON(500, nil)
 		}
 		return c.JSON(200, link)
 	case "crypto":
-		amountStr := strconv.Itoa(paymentCredentials.Amount)
-		link, err := s.api.Crypto.CreateInvoiceLink(cryptobot.CreateInvoiceRequest{
+		amountStr := strconv.Itoa(payment.Amount)
+		link, err := p.api.Crypto.CreateInvoiceLink(cryptobot.CreateInvoiceRequest{
 			Amount:    amountStr,
-			Asset:     paymentCredentials.Asset,
+			Asset:     payment.Asset,
 			Payload:   string(payload),
 			ExpiresIn: 30,
 		})
@@ -67,7 +77,7 @@ func (s subscription) CreateInvoiceLink(c echo.Context) error {
 	}
 }
 
-func (s subscription) Webhook(c echo.Context) error {
+func (p payment) Webhook(c echo.Context) error {
 	req := c.Request()
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -75,24 +85,25 @@ func (s subscription) Webhook(c echo.Context) error {
 	}
 	defer req.Body.Close()
 
-	payload, err := s.api.Crypto.Webhook(body)
+	payload, err := p.api.Crypto.Webhook(body)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
-	var paymentCredentials db.SubscriptionModel
+
+	var paymentCredentials domain.Payment
 	err = json.Unmarshal(payload, &paymentCredentials)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
 
-	s.b.PaymentInfo(paymentCredentials)
+	p.b.PaymentInfo(paymentCredentials)
 	return c.JSON(200, nil)
 }
 
-func NewSubscriptionControllers(b tgbot.BotInterface, api api.Interface) subscriptionControllers {
-	return subscription{
-		api, b,
+func NewPaymentControllers(store db.Store, b tgbot.BotInterface, api api.Interface) paymentControllers {
+	return payment{
+		store, api, b,
 	}
 }

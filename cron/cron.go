@@ -55,7 +55,7 @@ func (c cronManager) updateBalance() error {
 		return err
 	}
 	for _, user := range users {
-		diamonds, err := c.store.Subscription.DailyDiamonds(user.Subscription)
+		diamonds, err := c.store.Subscription.DailyDiamonds(user.Subscription.Name)
 		if err != nil {
 			return err
 		}

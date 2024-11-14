@@ -69,7 +69,6 @@ func (c cryptoClient) Webhook(requestBody []byte) ([]byte, error) {
 		}
 		return []byte(invoice.Payload), nil
 	default:
-		slog.Error(err.Error())
 		return []byte{}, nil
 	}
 }

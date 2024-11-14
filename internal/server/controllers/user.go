@@ -24,7 +24,7 @@ func (u user) GetUser(c echo.Context) error {
 		return c.JSON(500, nil)
 	}
 	if user.ID == 0 {
-		return c.JSON(400, nil)
+		return c.JSON(404, nil)
 	}
 
 	return c.JSON(200, user)

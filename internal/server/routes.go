@@ -16,7 +16,7 @@ func InitRoutes(e *echo.Echo, store db.Store, api api.Interface, b tgbot.BotInte
 	userRoutes(apiRoute, store)
 	chatRoutes(apiRoute, store)
 	messageRoutes(apiRoute, store, api)
-	paymentRoutes(apiRoute, b, api)
+	paymentRoutes(apiRoute, store, b, api)
 }
 
 func userRoutes(apiRoute *echo.Group, store db.Store) {
@@ -42,10 +42,10 @@ func messageRoutes(apiRoute *echo.Group, store db.Store, api api.Interface) {
 	message.POST("/chat/:id", controller.NewMessageToChat)
 }
 
-func paymentRoutes(apiRoute *echo.Group, b tgbot.BotInterface, api api.Interface) {
-	subscription := apiRoute.Group("/subscription")
-	controller := controllers.NewSubscriptionControllers(b, api)
+func paymentRoutes(apiRoute *echo.Group, store db.Store, b tgbot.BotInterface, api api.Interface) {
+	payment := apiRoute.Group("/payment")
+	controller := controllers.NewPaymentControllers(store, b, api)
 
-	subscription.POST("", controller.CreateInvoiceLink, AuthMiddleware)
-	subscription.POST("/webhook", controller.Webhook)
+	payment.POST("", controller.CreateInvoiceLink, AuthMiddleware)
+	payment.POST("/webhook", controller.Webhook)
 }

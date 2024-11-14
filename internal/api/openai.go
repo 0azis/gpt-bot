@@ -2,16 +2,16 @@ package api
 
 import (
 	"context"
-	"gpt-bot/internal/db"
+	"gpt-bot/internal/db/domain"
 	"log/slog"
 
 	"github.com/sashabaranov/go-openai"
 )
 
 type openAiInterface interface {
-	SendMessage(model string, apiMsgs []db.MessageModel) (string, error)
+	SendMessage(model string, apiMsgs []domain.Message) (string, error)
 	SendImageMessage(prompt string) (string, error)
-	GenerateTopicForChat(startMsg db.MessageModel) (string, error)
+	GenerateTopicForChat(startMsg domain.Message) (string, error)
 }
 
 type openaiClient struct {
@@ -25,7 +25,7 @@ func newOpenAiClient(token string) openAiInterface {
 	}
 }
 
-func (oc openaiClient) SendMessage(model string, apiMsgs []db.MessageModel) (string, error) {
+func (oc openaiClient) SendMessage(model string, apiMsgs []domain.Message) (string, error) {
 	var openaiMessages []openai.ChatCompletionMessage
 	for _, message := range apiMsgs {
 		openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
@@ -59,7 +59,7 @@ func (oc openaiClient) SendImageMessage(prompt string) (string, error) {
 	return resp.Data[0].URL, nil
 }
 
-func (oc openaiClient) GenerateTopicForChat(startMsg db.MessageModel) (string, error) {
+func (oc openaiClient) GenerateTopicForChat(startMsg domain.Message) (string, error) {
 	resp, err := oc.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
 		Model: openai.GPT4,
 		Messages: []openai.ChatCompletionMessage{

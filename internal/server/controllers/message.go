@@ -4,6 +4,7 @@ import (
 	"errors"
 	"gpt-bot/internal/api"
 	"gpt-bot/internal/db"
+	"gpt-bot/internal/db/domain"
 	"gpt-bot/utils"
 	"log/slog"
 	"strconv"
@@ -16,7 +17,7 @@ type messageControllers interface {
 	NewMessageToChat(c echo.Context) error
 	GetMessages(c echo.Context) error
 
-	modelAnswer(chat db.ChatModel, msg []db.MessageModel) (string, error)
+	modelAnswer(chat domain.Chat, msg []domain.Message) (string, error)
 }
 
 type message struct {
@@ -31,7 +32,7 @@ func (m message) NewMessage(c echo.Context) error {
 		return c.JSON(400, nil)
 	}
 
-	var msgCredentials db.MessageCredentials
+	var msgCredentials domain.Message
 	err := c.Bind(&msgCredentials)
 	if err != nil || !msgCredentials.Valid() {
 		return c.JSON(400, nil)
@@ -46,7 +47,7 @@ func (m message) NewMessage(c echo.Context) error {
 		return c.JSON(403, nil)
 	}
 
-	newChat := db.ChatModel{
+	newChat := domain.Chat{
 		UserID: jwtUserID,
 		Model:  model,
 	}
@@ -60,20 +61,20 @@ func (m message) NewMessage(c echo.Context) error {
 	}
 	newChat.ID = chatID
 
-	userMsg := db.NewUserMessage(chatID, msgCredentials.Content)
+	userMsg := domain.NewUserMessage(chatID, msgCredentials.Content)
 
 	go func() {
 		title, _ := m.api.OpenAI.GenerateTopicForChat(userMsg)
 		m.store.Chat.UpdateTitle(chatID, title)
 	}()
 
-	err = m.store.User.ReduceBalance(jwtUserID, db.PriceOfMessage)
+	err = m.store.User.ReduceBalance(jwtUserID, domain.PriceOfMessage)
 	if err != nil {
 		slog.Error(err.Error())
 		c.JSON(500, nil)
 	}
 
-	answer, err := m.modelAnswer(newChat, []db.MessageModel{userMsg})
+	answer, err := m.modelAnswer(newChat, []domain.Message{userMsg})
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
@@ -85,7 +86,7 @@ func (m message) NewMessage(c echo.Context) error {
 		return c.JSON(500, nil)
 	}
 
-	assistantMsg := db.NewAssistantMessage(chatID, answer)
+	assistantMsg := domain.NewAssistantMessage(chatID, answer)
 
 	err = m.store.Message.Create(assistantMsg)
 	if err != nil {
@@ -104,7 +105,7 @@ func (m message) NewMessageToChat(c echo.Context) error {
 		return c.JSON(400, nil)
 	}
 
-	var msgCredentials db.MessageCredentials
+	var msgCredentials domain.Message
 	err = c.Bind(&msgCredentials)
 	if err != nil || !msgCredentials.Valid() {
 		return c.JSON(400, nil)
@@ -125,7 +126,7 @@ func (m message) NewMessageToChat(c echo.Context) error {
 		return c.JSON(500, nil)
 	}
 
-	userMsg := db.NewUserMessage(chat.ID, msgCredentials.Content)
+	userMsg := domain.NewUserMessage(chat.ID, msgCredentials.Content)
 	err = m.store.Message.Create(userMsg)
 	if err != nil {
 		slog.Error(err.Error())
@@ -138,7 +139,7 @@ func (m message) NewMessageToChat(c echo.Context) error {
 		return c.JSON(500, nil)
 	}
 
-	err = m.store.User.ReduceBalance(jwtUserID, db.PriceOfMessage)
+	err = m.store.User.ReduceBalance(jwtUserID, domain.PriceOfMessage)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
@@ -150,7 +151,7 @@ func (m message) NewMessageToChat(c echo.Context) error {
 		return c.JSON(500, nil)
 	}
 
-	assistantMsg := db.NewAssistantMessage(chat.ID, answer)
+	assistantMsg := domain.NewAssistantMessage(chat.ID, answer)
 	err = m.store.Message.Create(assistantMsg)
 	if err != nil {
 		slog.Error(err.Error())
@@ -177,9 +178,9 @@ func (m message) GetMessages(c echo.Context) error {
 	return c.JSON(200, messages)
 }
 
-func (m message) modelAnswer(chat db.ChatModel, msg []db.MessageModel) (string, error) {
+func (m message) modelAnswer(chat domain.Chat, msg []domain.Message) (string, error) {
 	switch chat.Type {
-	case db.ChatImage:
+	case domain.ChatImage:
 		switch chat.Model {
 		case "runware":
 			answer, err := m.api.Runware.SendMessage(msg[len(msg)-1].Content)
@@ -199,7 +200,7 @@ func (m message) modelAnswer(chat db.ChatModel, msg []db.MessageModel) (string, 
 			return "", errors.New("model error")
 		}
 
-	case db.ChatText:
+	case domain.ChatText:
 		answer, err := m.api.OpenAI.SendMessage(chat.Model, msg)
 		if err != nil {
 			slog.Error(err.Error())

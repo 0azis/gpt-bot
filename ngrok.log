@@ -1,0 +1,8 @@
+t=2024-11-14T21:47:06+0300 lvl=info msg="no configuration paths supplied"
+t=2024-11-14T21:47:06+0300 lvl=info msg="using configuration at default config path" path=/home/oazis/snap/ngrok/226/.config/ngrok/ngrok.yml
+t=2024-11-14T21:47:06+0300 lvl=info msg="open config file" path=/home/oazis/snap/ngrok/226/.config/ngrok/ngrok.yml err=nil
+t=2024-11-14T21:47:06+0300 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4040 allow_hosts=[]
+t=2024-11-14T21:47:06+0300 lvl=info msg="client session established" obj=tunnels.session
+t=2024-11-14T21:47:06+0300 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2024-11-14T21:47:06+0300 lvl=info msg="started tunnel" obj=tunnels name=command_line addr=http://localhost:80 url=https://7cea-92-101-230-200.ngrok-free.app
+t=2024-11-14T21:47:11+0300 lvl=warn msg="failed to check for update" obj=updater err="Post \"https://update.equinox.io/check\": context deadline exceeded"
