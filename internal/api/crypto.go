@@ -1,26 +1,74 @@
 package api
 
-// const baseUrl = ""
+import (
+	"fmt"
+	"log/slog"
+	"strconv"
+
+	"github.com/arthurshafikov/cryptobot-sdk-golang/cryptobot"
+)
 
 type cryptoInterface interface {
-	CreateInvoiceLink() (string, error)
+	CreateInvoiceLink(invoice cryptobot.CreateInvoiceRequest) (string, error)
+	NewInvoiceModel(amount int, asset string, payload string) invoiceModel
+	Webhook(requestBody []byte) ([]byte, error)
 }
 
 type cryptoClient struct {
-	token string
+	*cryptobot.Client
 }
 
-type invoicePayload struct {
-	Amount    int    `json:"amount"`
+func newCrypto(token string) cryptoInterface {
+	fmt.Println(token)
+	client := cryptobot.NewClient(cryptobot.Options{
+		Testing:  true,
+		APIToken: token,
+	})
+	return cryptoClient{client}
+}
+
+type invoiceModel struct {
+	Amount    string `json:"amount"`
 	Asset     string `json:"asset"`
 	Payload   string `json:"payload"`
 	ExpiresIn int    `json:"-"`
 }
 
-func newCrypto(token string) cryptoInterface {
-	return cryptoClient{token}
+func (c cryptoClient) NewInvoiceModel(amount int, asset string, payload string) invoiceModel {
+	amountStr := strconv.Itoa(amount)
+	return invoiceModel{
+		Amount:    amountStr,
+		Asset:     asset,
+		Payload:   payload,
+		ExpiresIn: 30,
+	}
 }
 
-func (c cryptoClient) CreateInvoiceLink() (string, error) {
-	return "", nil
+func (c cryptoClient) CreateInvoiceLink(invoice cryptobot.CreateInvoiceRequest) (string, error) {
+	invoiceObj, err := c.CreateInvoice(invoice)
+	if err != nil {
+		return "", err
+	}
+
+	return invoiceObj.PayUrl, err
+}
+
+func (c cryptoClient) Webhook(requestBody []byte) ([]byte, error) {
+	webhookUpdate, err := cryptobot.ParseWebhookUpdate(requestBody)
+	if err != nil {
+		slog.Error(err.Error())
+		return []byte{}, err
+	}
+
+	switch webhookUpdate.UpdateType {
+	case cryptobot.InvoicePaidWebhookUpdateType:
+		invoice, err := cryptobot.ParseInvoice(requestBody)
+		if err != nil {
+			slog.Error(err.Error())
+			return []byte{}, err
+		}
+		return []byte(invoice.Payload), nil
+	default:
+		return []byte{}, nil
+	}
 }

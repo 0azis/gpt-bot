@@ -104,12 +104,13 @@ func newDatabase() Database {
 }
 
 type Api struct {
-	openai  string
-	runware string
+	openai    string
+	runware   string
+	cryptoBot string
 }
 
 func (a Api) IsValid() bool {
-	return a.openai != "" && a.runware != ""
+	return a.openai != "" && a.runware != "" && a.cryptoBot != ""
 }
 
 func (a Api) OpenAI() string {
@@ -120,10 +121,15 @@ func (a Api) Runware() string {
 	return a.runware
 }
 
+func (a Api) CryptoBot() string {
+	return a.cryptoBot
+}
+
 func newApi() Api {
 	return Api{
-		openai:  getEnv("API_OPENAI_TOKEN"),
-		runware: getEnv("API_RUNWARE_TOKEN"),
+		openai:    getEnv("API_OPENAI_TOKEN"),
+		runware:   getEnv("API_RUNWARE_TOKEN"),
+		cryptoBot: getEnv("API_CRYPTOBOT_TOKEN"),
 	}
 }
 

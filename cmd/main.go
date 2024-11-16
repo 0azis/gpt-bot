@@ -53,7 +53,6 @@ func main() {
 		AllowMethods:     []string{echo.GET, echo.POST, echo.OPTIONS},
 		AllowCredentials: true,
 	}))
-	e.Use(server.AuthMiddleware)
 
 	// init api
 	api := api.New(config.Api)
@@ -63,7 +62,7 @@ func main() {
 	cronManager.Run()
 
 	// init routes to it
-	server.InitRoutes(e, store, api, bot.Instance())
+	server.InitRoutes(e, store, api, bot)
 
 	err = e.Start(config.Server.Addr())
 	if err != nil {

@@ -1,57 +1,33 @@
 package db
 
 import (
+	"gpt-bot/internal/db/domain"
 	"gpt-bot/utils"
 
 	"github.com/jmoiron/sqlx"
 )
 
-type UserModel struct {
-	ID           int     `json:"id" db:"id"`
-	Subscription string  `json:"subscription"`
-	Avatar       string  `json:"avatar"`
-	Balance      int     `json:"balance"`
-	ReferralCode *string `json:"referralCode"`
-	ReferredBy   *string `json:"referredBy"`
-}
-
-type userRepository interface {
-	// user
-	Create(user UserModel) error
-	GetByID(jwtUserID int) (UserModel, error)
-	GetAll() ([]UserModel, error)
-	// referral
-	IsUserReferred(userID int, refCode string) (int, error)
-	SetReferredBy(userID int, refBy string) error
-	OwnerOfReferralCode(refCode string) (int, error)
-	//balance
-	GetBalance(userID int) (int, error)
-	RaiseBalance(userID, sum int) error
-	ReduceBalance(userID, sum int) error
-	FillBalance(userID, balance int) error
-}
-
-type user struct {
+type userDb struct {
 	db *sqlx.DB
 }
 
-func (u user) Create(user UserModel) error {
+func (u userDb) Create(user domain.User) error {
 	refCode := utils.GenerateReferralCode()
 
 	_, err := u.db.Query(`insert into users (id, avatar, referral_code) values (?, ?, ?) on duplicate key update avatar = avatar`, user.ID, user.Avatar, refCode)
 	return err
 }
 
-func (u user) GetByID(jwtUserID int) (UserModel, error) {
-	var user UserModel
-	rows, err := u.db.Query(`select users.id, subscriptions.name, users.balance, users.avatar, users.referral_code, users.referred_by from users left join subscriptions on subscriptions.user_id = users.id where id = ?`, jwtUserID)
+func (u userDb) GetByID(jwtUserID int) (domain.User, error) {
+	var user domain.User
+	rows, err := u.db.Query(`select users.id, subscriptions.name, subscriptions.start, subscriptions.end, users.balance, users.avatar, users.referral_code, users.referred_by from users left join subscriptions on subscriptions.user_id = users.id where id = ?`, jwtUserID)
 	if err != nil {
 		return user, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.Scan(&user.ID, &user.Subscription, &user.Balance, &user.Avatar, &user.ReferralCode, &user.ReferredBy)
+		err = rows.Scan(&user.ID, &user.Subscription.Name, &user.Subscription.Start, &user.Subscription.End, &user.Balance, &user.Avatar, &user.ReferralCode, &user.ReferredBy)
 		if err != nil {
 			return user, err
 		}
@@ -60,8 +36,8 @@ func (u user) GetByID(jwtUserID int) (UserModel, error) {
 	return user, err
 }
 
-func (u user) GetAll() ([]UserModel, error) {
-	var users []UserModel
+func (u userDb) GetAll() ([]domain.User, error) {
+	var users []domain.User
 	rows, err := u.db.Query(`select users.id, subscriptions.name, users.balance, users.avatar, users.referral_code, users.referred_by from users left join subscriptions on subscriptions.user_id = users.id`)
 	if err != nil {
 		return users, err
@@ -69,8 +45,8 @@ func (u user) GetAll() ([]UserModel, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var user UserModel
-		err = rows.Scan(&user.ID, &user.Subscription, &user.Balance, &user.Avatar, &user.ReferralCode, &user.ReferredBy)
+		var user domain.User
+		err = rows.Scan(&user.ID, &user.Subscription.Name, &user.Balance, &user.Avatar, &user.ReferralCode, &user.ReferredBy)
 		if err != nil {
 			return users, err
 		}
@@ -80,7 +56,7 @@ func (u user) GetAll() ([]UserModel, error) {
 	return users, nil
 }
 
-func (u user) IsUserReferred(userID int, refCode string) (int, error) {
+func (u userDb) IsUserReferred(userID int, refCode string) (int, error) {
 	var id int
 	rows, err := u.db.Query(`select id from users where (referred_by = ? or referred_by != "") and id = ?`, refCode, userID)
 	if err != nil {
@@ -97,18 +73,18 @@ func (u user) IsUserReferred(userID int, refCode string) (int, error) {
 	return id, nil
 }
 
-func (u user) SetReferredBy(userID int, refBy string) error {
+func (u userDb) SetReferredBy(userID int, refBy string) error {
 	_, err := u.db.Query(`update users set referred_by = ? where id = ?`, refBy, userID)
 	return err
 }
 
-func (u user) OwnerOfReferralCode(refCode string) (int, error) {
+func (u userDb) OwnerOfReferralCode(refCode string) (int, error) {
 	var id int
 	err := u.db.Get(&id, `select id from users where referral_code = ?`, refCode)
 	return id, err
 }
 
-func (u user) GetBalance(userID int) (int, error) {
+func (u userDb) GetBalance(userID int) (int, error) {
 	var balance int
 	rows, err := u.db.Query(`select balance from users where id = ?`, userID)
 	if err != nil {
@@ -125,17 +101,17 @@ func (u user) GetBalance(userID int) (int, error) {
 	return balance, nil
 }
 
-func (u user) RaiseBalance(userID, sum int) error {
+func (u userDb) RaiseBalance(userID, sum int) error {
 	_, err := u.db.Query(`update users set balance = balance + ? where id = ?`, sum, userID)
 	return err
 }
 
-func (u user) ReduceBalance(userID, sum int) error {
+func (u userDb) ReduceBalance(userID, sum int) error {
 	_, err := u.db.Query(`update users set balance = balance - ? where id = ?`, sum, userID)
 	return err
 }
 
-func (u user) FillBalance(userID, balance int) error {
+func (u userDb) FillBalance(userID, balance int) error {
 	_, err := u.db.Query(`update users set balance = ? where id = ?`, balance, userID)
 	return err
 }

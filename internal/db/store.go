@@ -2,6 +2,7 @@ package db
 
 import (
 	"gpt-bot/config"
+	"gpt-bot/internal/db/repository"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -9,22 +10,22 @@ import (
 
 // Store is a main struct with all repositories
 type Store struct {
-	User         userRepository
-	Chat         chatRepository
-	Message      messageRepository
-	Bonus        bonusRepository
-	Subscription subscriptionRepository
+	User         repository.UserRepository
+	Chat         repository.ChatRepository
+	Message      repository.MessageRepository
+	Bonus        repository.BonusRepository
+	Subscription repository.SubscriptionRepository
 }
 
 func New(cfg config.Database) (Store, error) {
 	db, err := sqlx.Connect("mysql", cfg.Addr())
 
 	store := Store{
-		User:         user{db},
-		Chat:         chat{db},
-		Message:      message{db},
-		Bonus:        bonus{db},
-		Subscription: subscription{db},
+		User:         userDb{db},
+		Chat:         chatDb{db},
+		Message:      messageDb{db},
+		Bonus:        bonusDb{db},
+		Subscription: subscriptionDb{db},
 	}
 
 	return store, err

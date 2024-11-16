@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"gpt-bot/config"
 	"gpt-bot/internal/db"
+	"gpt-bot/internal/db/domain"
 	"gpt-bot/utils"
 	"log/slog"
 	"os"
@@ -28,6 +29,8 @@ type BotInterface interface {
 	defaultHandler(ctx context.Context, b *bot.Bot, update *models.Update)
 
 	// helpers
+	CreateInvoiceLink(payload []byte, paymentCredentials domain.Payment) (string, error)
+	PaymentInfo(paymentCredentials domain.Payment)
 	getTelegramAvatar(ctx context.Context, userID int64) string
 	informUser(ctx context.Context, userID int64, errMsg string)
 }
@@ -64,7 +67,7 @@ func (tg tgBot) InitHandlers() {
 }
 
 func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	var user db.UserModel
+	var user domain.User
 	user.ID = int(update.Message.From.ID)
 	user.Avatar = tb.getTelegramAvatar(ctx, int64(user.ID))
 
@@ -179,6 +182,19 @@ func (tb tgBot) getTelegramAvatar(ctx context.Context, userID int64) string {
 	return url
 }
 
+func (tb tgBot) CreateInvoiceLink(payload []byte, payment domain.Payment) (string, error) {
+	link, err := tb.b.CreateInvoiceLink(context.Background(), &bot.CreateInvoiceLinkParams{
+		Title:       fmt.Sprintf("%s subscription", payment.SubscriptionName),
+		Description: "Buy subscription",
+		Payload:     string(payload),
+		Currency:    "XTR",
+		Prices: []models.LabeledPrice{
+			{Label: payment.SubscriptionName, Amount: payment.Amount},
+		},
+	})
+	return link, err
+}
+
 func (tb tgBot) informUser(ctx context.Context, userID int64, errorMsg string) {
 	tb.b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: userID,
@@ -186,31 +202,40 @@ func (tb tgBot) informUser(ctx context.Context, userID int64, errorMsg string) {
 	})
 }
 
+func (tb tgBot) PaymentInfo(paymentCredentials domain.Payment) {
+	_, err := tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
+		ChatID:    paymentCredentials.UserID,
+		Text:      fmt.Sprintf(`Вы успешно купили подписку **%s** за *%d* звезд\\nВаша подписка доступна до: %s`, paymentCredentials.SubscriptionName, paymentCredentials.Amount, paymentCredentials.End),
+		ParseMode: models.ParseModeMarkdown,
+	})
+	fmt.Println(err)
+}
+
 func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	var subscriptionPayload db.SubscriptionModel
+	var payment domain.Payment
 
 	if update.PreCheckoutQuery != nil {
-		err := json.Unmarshal([]byte(update.PreCheckoutQuery.InvoicePayload), &subscriptionPayload)
+		err := json.Unmarshal([]byte(update.PreCheckoutQuery.InvoicePayload), &payment)
 		if err != nil {
 			slog.Error(err.Error())
 			return
 		}
-		err = tb.store.Subscription.Update(subscriptionPayload.UserID, subscriptionPayload.Name, subscriptionPayload.End)
+		err = tb.store.Subscription.Update(payment.UserID, payment.SubscriptionName, payment.End)
 		if err != nil {
 			slog.Error(err.Error())
-			tb.informUser(ctx, int64(subscriptionPayload.UserID), internalError)
+			tb.informUser(ctx, int64(payment.UserID), internalError)
 			return
 		}
-		diamonds, err := tb.store.Subscription.DailyDiamonds(subscriptionPayload.Name)
+		diamonds, err := tb.store.Subscription.DailyDiamonds(payment.SubscriptionName)
 		if err != nil {
 			slog.Error(err.Error())
-			tb.informUser(ctx, int64(subscriptionPayload.UserID), internalError)
+			tb.informUser(ctx, int64(payment.UserID), internalError)
 			return
 		}
-		err = tb.store.User.FillBalance(subscriptionPayload.UserID, diamonds)
+		err = tb.store.User.FillBalance(payment.UserID, diamonds)
 		if err != nil {
 			slog.Error(err.Error())
-			tb.informUser(ctx, int64(subscriptionPayload.UserID), internalError)
+			tb.informUser(ctx, int64(payment.UserID), internalError)
 			return
 		}
 
@@ -221,7 +246,7 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 		})
 		if err != nil {
 			slog.Error(err.Error())
-			tb.informUser(ctx, int64(subscriptionPayload.UserID), paymentError)
+			tb.informUser(ctx, int64(payment.UserID), paymentError)
 			return
 		}
 
@@ -230,16 +255,13 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 
 	if update.Message != nil {
 		if update.Message.SuccessfulPayment != nil {
-			err := json.Unmarshal([]byte(update.Message.SuccessfulPayment.InvoicePayload), &subscriptionPayload)
+			err := json.Unmarshal([]byte(update.Message.SuccessfulPayment.InvoicePayload), &payment)
 			if err != nil {
 				slog.Error(err.Error())
 				tb.informUser(ctx, update.Message.From.ID, internalError)
 				return
 			}
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   fmt.Sprintf("Вы успешно купили подписку **%s** за *%d* звезд!\nВаша подписка доступна до: %s", subscriptionPayload.Name, subscriptionPayload.Amount, subscriptionPayload.End),
-			})
+			tb.PaymentInfo(payment)
 			return
 		}
 	}

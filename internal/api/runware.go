@@ -8,18 +8,17 @@ import (
 	"net/http"
 )
 
-const baseUrl = "https://api.runware.ai/v1"
-
 type runwareInterface interface {
 	SendMessage(prompt string) (string, error)
 }
 
 type runwareClient struct {
-	token string
+	baseUrl string
+	token   string
 }
 
 func newRunware(token string) runwareInterface {
-	return runwareClient{token}
+	return runwareClient{token, "https://api.runware.ai/v1"}
 }
 
 type requestBody struct {
@@ -59,7 +58,7 @@ func (rc runwareClient) SendMessage(prompt string) (string, error) {
 		return imageLink, err
 	}
 
-	req, err := http.NewRequest("POST", baseUrl, bytes.NewBuffer(b))
+	req, err := http.NewRequest("POST", rc.baseUrl, bytes.NewBuffer(b))
 	if err != nil {
 		slog.Error(err.Error())
 		return imageLink, err
