@@ -22,6 +22,7 @@ CREATE TABLE messages(
     chat_id smallint not null,
     content text not null,
     role enum('user', 'assistant') not null,
+    created_at timestamp default current_timestamp,
     foreign key (chat_id) references chats (id) on delete cascade,
     primary key(id)
 );
