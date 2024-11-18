@@ -79,25 +79,46 @@ type Message struct {
 	ChatID  int    `json:"-"`
 	Content string `json:"content"`
 	Role    string `json:"role"`
+	Type    string `json:"type"`
 }
 
 func (m Message) Valid() bool {
 	return m.Content != ""
 }
 
-func NewUserMessage(chatID int, content string) Message {
+func NewUserTextMessage(chatID int, content string) Message {
 	return Message{
 		ChatID:  chatID,
 		Content: content,
 		Role:    openai.ChatMessageRoleUser,
+		Type:    "text",
 	}
 }
 
-func NewAssistantMessage(chatID int, content string) Message {
+func NewUserImageMessage(chatID int, content string) Message {
+	return Message{
+		ChatID:  chatID,
+		Content: content,
+		Role:    openai.ChatMessageRoleUser,
+		Type:    "image",
+	}
+}
+
+func NewAssistantTextMessage(chatID int, content string) Message {
 	return Message{
 		ChatID:  chatID,
 		Content: content,
 		Role:    openai.ChatMessageRoleAssistant,
+		Type:    "text",
+	}
+}
+
+func NewAssistantImageMessage(chatID int, content string) Message {
+	return Message{
+		ChatID:  chatID,
+		Content: content,
+		Role:    openai.ChatMessageRoleUser,
+		Type:    "image",
 	}
 }
 

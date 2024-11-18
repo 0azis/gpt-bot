@@ -57,22 +57,28 @@ func (c Config) IsValid() bool {
 
 // server config
 type Server struct {
-	host string
-	port string
+	host     string
+	port     string
+	savePath string
 }
 
 func (s Server) IsValid() bool {
-	return s.host != "" && s.port != "" && string(JwtSecretHash()) != ""
+	return s.host != "" && s.port != "" && string(JwtSecretHash()) != "" && s.savePath != ""
 }
 
 func (s Server) Addr() string {
 	return s.host + ":" + s.port
 }
 
+func (s Server) SavePath() string {
+	return s.savePath
+}
+
 func newServer() Server {
 	return Server{
-		host: getEnv("HTTP_HOST"),
-		port: getEnv("HTTP_PORT"),
+		host:     getEnv("HTTP_HOST"),
+		port:     getEnv("HTTP_PORT"),
+		savePath: getEnv("HTTP_SAVE_PATH"),
 	}
 }
 

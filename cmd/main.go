@@ -62,7 +62,7 @@ func main() {
 	cronManager.Run()
 
 	// init routes to it
-	server.InitRoutes(e, store, api, bot)
+	server.InitRoutes(e, store, api, bot, config.Server.SavePath())
 
 	err = e.Start(config.Server.Addr())
 	if err != nil {
