@@ -23,7 +23,7 @@ func (c chatDb) Create(chat domain.Chat) (int, error) {
 
 func (c chatDb) GetByUser(userID int) ([]domain.Chat, error) {
 	var chats []domain.Chat
-	err := c.db.Select(&chats, `select distinct chats.id, chats.title, chats.model, chats.type, messages.created_at from chats left join messages on messages.chat_id = chats.id where user_id = ? order by messages.created_at desc`, userID)
+	err := c.db.Select(&chats, `select chats.id, chats.title, chats.model, chats.type from chats inner join messages on messages.chat_id = chats.id where user_id = ? order by messages.created_at desc`, userID)
 	return chats, err
 }
 

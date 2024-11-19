@@ -8,6 +8,12 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
+var subscriptionModels map[string][]string = map[string][]string{
+	"standard": []string{"gpt-4o-mini", "runware"},
+	"advanced": []string{"gpt-4o", "o1-mini", "gpt-4o-mini", "runware", "dall-e-3"},
+	"ultimate": []string{"o1-preview", "gpt-4o", "o1-mini", "gpt-4o-mini", "runware", "dall-e-3"},
+}
+
 type User struct {
 	ID           int          `json:"id" db:"id"`
 	Subscription Subscription `json:"subscription"`
@@ -15,6 +21,13 @@ type User struct {
 	Balance      int          `json:"balance"`
 	ReferralCode *string      `json:"referralCode"`
 	ReferredBy   *string      `json:"referredBy"`
+}
+
+func (u User) IsModelValid(model string) bool {
+	if !slices.Contains(subscriptionModels[u.Subscription.Name], model) {
+		return false
+	}
+	return true
 }
 
 type Subscription struct {
@@ -72,7 +85,8 @@ func (p *Payment) ToReadable() {
 	}
 }
 
-const PriceOfMessage int = 10
+const PriceOfTextMessage int = 10
+const PriceOfImageMessage int = 100
 
 type Message struct {
 	ID      int    `json:"-"`

@@ -53,4 +53,4 @@ CREATE TABLE subscriptions(
 INSERT INTO bonuses (award, bonus_type) values (10, 'referral');
 INSERT INTO subscriptions_info(name, diamonds) values ('standard', 150);
 INSERT INTO subscriptions_info(name, diamonds) values ('advanced', 1500);
-INSERT INTO subscriptions_info(name, diamonds) values ('ultimate', 3000);
+INSERT INTO subscriptions_info(name, diamonds) values ('ultimate', 4000);
