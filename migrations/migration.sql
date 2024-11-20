@@ -22,6 +22,7 @@ CREATE TABLE messages(
     chat_id smallint not null,
     content text not null,
     role enum('user', 'assistant') not null,
+    type enum('text', 'image') not null,
     created_at timestamp default current_timestamp,
     foreign key (chat_id) references chats (id) on delete cascade,
     primary key(id)
@@ -52,4 +53,4 @@ CREATE TABLE subscriptions(
 INSERT INTO bonuses (award, bonus_type) values (10, 'referral');
 INSERT INTO subscriptions_info(name, diamonds) values ('standard', 150);
 INSERT INTO subscriptions_info(name, diamonds) values ('advanced', 1500);
-INSERT INTO subscriptions_info(name, diamonds) values ('ultimate', 3000);
+INSERT INTO subscriptions_info(name, diamonds) values ('ultimate', 4000);

@@ -61,10 +61,10 @@ func (oc openaiClient) SendImageMessage(prompt string) (string, error) {
 
 func (oc openaiClient) GenerateTopicForChat(startMsg domain.Message) (string, error) {
 	resp, err := oc.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
-		Model: openai.GPT4,
+		Model: openai.O1Preview,
 		Messages: []openai.ChatCompletionMessage{
 			{Role: openai.ChatMessageRoleUser, Content: startMsg.Content},
-			{Role: openai.ChatMessageRoleUser, Content: "generate a short chat topic (5 words max) based on the initial message in Russian"},
+			{Role: openai.ChatMessageRoleUser, Content: "generate a short chat topic (4 words maximum) based on the initial message in Russian"},
 		},
 	})
 

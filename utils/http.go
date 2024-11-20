@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -18,4 +19,9 @@ func ExtractUserID(c echo.Context) int {
 	}
 
 	return t.GetUserID()
+}
+
+func BindToJSON(i any, data string) error {
+	err := json.Unmarshal([]byte(data), i)
+	return err
 }
