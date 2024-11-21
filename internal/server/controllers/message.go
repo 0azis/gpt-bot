@@ -12,7 +12,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-const uploadsRoute = "localhost:5000/api/v1/uploads/"
+const uploadsRoute = "https://mywebai.top/api/v1/uploads/"
 
 type messageControllers interface {
 	NewMessage(c echo.Context) error
@@ -45,10 +45,23 @@ func (m message) NewMessage(c echo.Context) error {
 
 	user, err := m.store.User.GetByID(jwtUserID)
 	if err != nil {
+		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
 	if !user.IsModelValid(model) {
 		return c.JSON(403, nil)
+	}
+
+	var message domain.Message
+	multipart, err := c.MultipartForm()
+	if err != nil {
+		return c.JSON(400, nil)
+	}
+	if d, ok := multipart.Value["data"]; ok {
+		err := utils.BindToJSON(&message, d[0])
+		if err != nil || !message.Valid() {
+			return c.JSON(400, nil)
+		}
 	}
 
 	var chat domain.Chat
@@ -69,6 +82,14 @@ func (m message) NewMessage(c echo.Context) error {
 		}
 		newChat.ID = id
 		chat = newChat
+
+		go func() {
+			title, err := m.api.OpenAI.GenerateTopicForChat(message)
+			if err == nil {
+				m.store.Chat.UpdateTitle(id, title)
+			}
+		}()
+
 		isNewChat = true
 	} else {
 		chatDb, err := m.store.Chat.GetByID(paramInt)
@@ -80,22 +101,7 @@ func (m message) NewMessage(c echo.Context) error {
 		isNewChat = false
 	}
 
-	balance, err := m.store.User.GetBalance(jwtUserID)
-	if err != nil {
-		slog.Error(err.Error())
-		return c.JSON(500, nil)
-	}
-	if balance == 0 {
-		return c.JSON(403, nil)
-	}
-
-	var message domain.Message
-	file, err := c.MultipartForm()
-	if err != nil {
-		return c.JSON(400, nil)
-	}
-
-	if f, ok := file.File["file"]; ok {
+	if f, ok := multipart.File["file"]; ok {
 		fileObj := f[0]
 		uuid, err := utils.SaveImage(fileObj, m.savePath)
 		if err != nil {
@@ -110,11 +116,13 @@ func (m message) NewMessage(c echo.Context) error {
 		}
 	}
 
-	if d, ok := file.Value["data"]; ok {
-		err := utils.BindToJSON(&message, d[0])
-		if err != nil || !message.Valid() {
-			return c.JSON(400, nil)
-		}
+	balance, err := m.store.User.GetBalance(jwtUserID)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
+	}
+	if balance == 0 {
+		return c.JSON(403, nil)
 	}
 
 	userMsg := domain.NewUserTextMessage(chat.ID, message.Content)
@@ -123,11 +131,6 @@ func (m message) NewMessage(c echo.Context) error {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
-
-	go func() {
-		title, _ := m.api.OpenAI.GenerateTopicForChat(userMsg)
-		m.store.Chat.UpdateTitle(chat.ID, title)
-	}()
 
 	messages, err := m.store.Message.GetByChat(jwtUserID, chat.ID)
 	if err != nil {
