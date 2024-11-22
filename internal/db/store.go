@@ -15,6 +15,7 @@ type Store struct {
 	Message      repository.MessageRepository
 	Bonus        repository.BonusRepository
 	Subscription repository.SubscriptionRepository
+	Limits       repository.LimitsRepository
 }
 
 func New(cfg config.Database) (Store, error) {
@@ -26,6 +27,7 @@ func New(cfg config.Database) (Store, error) {
 		Message:      messageDb{db},
 		Bonus:        bonusDb{db},
 		Subscription: subscriptionDb{db},
+		Limits:       limitsDb{db},
 	}
 
 	return store, err

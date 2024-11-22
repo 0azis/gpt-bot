@@ -50,6 +50,18 @@ CREATE TABLE subscriptions(
     primary key(user_id)
 );
 
+CREATE TABLE limits (
+    user_id bigint not null,
+    o1_preview int not null,
+    gpt_4o int not null,
+    o1_mini int not null,
+    gpt_4o_mini int not null,
+    runware int not null,
+    dall_e_3 int not null,
+    foreign key (user_id) references users (id) on delete cascade,
+    primary key(user_id)
+);
+
 INSERT INTO bonuses (award, bonus_type) values (10, 'referral');
 INSERT INTO subscriptions_info(name, diamonds) values ('standard', 150);
 INSERT INTO subscriptions_info(name, diamonds) values ('advanced', 1500);

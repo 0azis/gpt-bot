@@ -26,6 +26,13 @@ type SubscriptionRepository interface {
 	DailyDiamonds(name string) (int, error)
 }
 
+type LimitsRepository interface {
+	Create(limits domain.Limits) error
+	Update(newLimits domain.Limits) error
+	Reduce(userID int, model string) error
+	GetLimitsByModel(userID int, model string) (int, error)
+}
+
 type MessageRepository interface {
 	Create(msg domain.Message) error
 	GetByChat(userID, chatID int) ([]domain.Message, error)
