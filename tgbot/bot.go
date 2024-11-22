@@ -30,7 +30,7 @@ type BotInterface interface {
 
 	// helpers
 	CreateInvoiceLink(payload []byte, paymentCredentials domain.Payment) (string, error)
-	PaymentInfo(paymentCredentials domain.Payment)
+	PaymentInfo(paymentCredentials domain.Payment, status bool)
 	getTelegramAvatar(ctx context.Context, userID int64) string
 	informUser(ctx context.Context, userID int64, errMsg string)
 }
@@ -78,6 +78,13 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 		return
 	}
 	err = tb.store.Subscription.InitStandard(user.ID)
+	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, int64(user.ID), userCreationError)
+		return
+	}
+	limits := domain.NewLimits(user.ID, domain.SubscriptionStandard)
+	err = tb.store.Limits.Create(limits)
 	if err != nil {
 		slog.Error(err.Error())
 		tb.informUser(ctx, int64(user.ID), userCreationError)
@@ -202,13 +209,22 @@ func (tb tgBot) informUser(ctx context.Context, userID int64, errorMsg string) {
 	})
 }
 
-func (tb tgBot) PaymentInfo(paymentCredentials domain.Payment) {
-	_, err := tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
-		ChatID:    paymentCredentials.UserID,
-		Text:      fmt.Sprintf(`Вы успешно купили подписку **%s** за *%d* звезд\\nВаша подписка доступна до: %s`, paymentCredentials.SubscriptionName, paymentCredentials.Amount, paymentCredentials.End),
-		ParseMode: models.ParseModeMarkdown,
-	})
-	fmt.Println(err)
+func (tb tgBot) PaymentInfo(payment domain.Payment, status bool) {
+	if status {
+		_, err := tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
+			ChatID:    payment.UserID,
+			Text:      fmt.Sprintf(`Вы успешно купили подписку <b>%s</b> за <i>%d</i> звезд. Ваша подписка доступна до: %s`, payment.SubscriptionName, payment.Amount, payment.End),
+			ParseMode: models.ParseModeHTML,
+		})
+		fmt.Println(err)
+	} else {
+		_, err := tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
+			ChatID:    payment.UserID,
+			Text:      fmt.Sprintf(`Неудалось купить подписку <b>%s</b> за <i>%d</i> звезд. Попробуйте позже`, payment.SubscriptionName, payment.Amount),
+			ParseMode: models.ParseModeHTML,
+		})
+		fmt.Println(err)
+	}
 }
 
 func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -218,24 +234,6 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 		err := json.Unmarshal([]byte(update.PreCheckoutQuery.InvoicePayload), &payment)
 		if err != nil {
 			slog.Error(err.Error())
-			return
-		}
-		err = tb.store.Subscription.Update(payment.UserID, payment.SubscriptionName, payment.End)
-		if err != nil {
-			slog.Error(err.Error())
-			tb.informUser(ctx, int64(payment.UserID), internalError)
-			return
-		}
-		diamonds, err := tb.store.Subscription.DailyDiamonds(payment.SubscriptionName)
-		if err != nil {
-			slog.Error(err.Error())
-			tb.informUser(ctx, int64(payment.UserID), internalError)
-			return
-		}
-		err = tb.store.User.FillBalance(payment.UserID, diamonds)
-		if err != nil {
-			slog.Error(err.Error())
-			tb.informUser(ctx, int64(payment.UserID), internalError)
 			return
 		}
 
@@ -261,7 +259,32 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 				tb.informUser(ctx, update.Message.From.ID, internalError)
 				return
 			}
-			tb.PaymentInfo(payment)
+			err = tb.store.Subscription.Update(payment.UserID, payment.SubscriptionName, payment.End)
+			if err != nil {
+				slog.Error(err.Error())
+				tb.informUser(ctx, int64(payment.UserID), internalError)
+				return
+			}
+			diamonds, err := tb.store.Subscription.DailyDiamonds(payment.SubscriptionName)
+			if err != nil {
+				slog.Error(err.Error())
+				tb.informUser(ctx, int64(payment.UserID), internalError)
+				return
+			}
+			err = tb.store.User.FillBalance(payment.UserID, diamonds)
+			if err != nil {
+				slog.Error(err.Error())
+				tb.informUser(ctx, int64(payment.UserID), internalError)
+				return
+			}
+			limits := domain.NewLimits(payment.UserID, payment.SubscriptionName)
+			err = tb.store.Limits.Update(limits)
+			if err != nil {
+				slog.Error(err.Error())
+				tb.informUser(ctx, int64(payment.UserID), internalError)
+				return
+			}
+			tb.PaymentInfo(payment, true)
 			return
 		}
 	}

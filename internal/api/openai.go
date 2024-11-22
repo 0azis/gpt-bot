@@ -28,6 +28,15 @@ func newOpenAiClient(token string) openAiInterface {
 func (oc openaiClient) SendMessage(model string, apiMsgs []domain.Message) (string, error) {
 	var openaiMessages []openai.ChatCompletionMessage
 	for _, message := range apiMsgs {
+		if message.Type == "image" {
+			openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
+				Role: message.Role, Content: message.Content, MultiContent: []openai.ChatMessagePart{
+					{Type: openai.ChatMessagePartTypeImageURL, ImageURL: &openai.ChatMessageImageURL{
+						URL: message.Content,
+					}},
+				},
+			})
+		}
 		openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
 			Role: message.Role, Content: message.Content,
 		})

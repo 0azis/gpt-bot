@@ -91,14 +91,40 @@ func (p payment) Webhook(c echo.Context) error {
 		return c.JSON(500, nil)
 	}
 
-	var paymentCredentials domain.Payment
-	err = json.Unmarshal(payload, &paymentCredentials)
+	var payment domain.Payment
+	err = json.Unmarshal(payload, &payment)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
 
-	p.b.PaymentInfo(paymentCredentials)
+	err = p.store.Subscription.Update(payment.UserID, payment.SubscriptionName, payment.End)
+	if err != nil {
+		slog.Error(err.Error())
+		p.b.PaymentInfo(payment, false)
+		return c.JSON(500, nil)
+	}
+	diamonds, err := p.store.Subscription.DailyDiamonds(payment.SubscriptionName)
+	if err != nil {
+		slog.Error(err.Error())
+		p.b.PaymentInfo(payment, false)
+		return c.JSON(500, nil)
+	}
+	err = p.store.User.FillBalance(payment.UserID, diamonds)
+	if err != nil {
+		slog.Error(err.Error())
+		p.b.PaymentInfo(payment, false)
+		return c.JSON(500, nil)
+	}
+	limits := domain.NewLimits(payment.UserID, payment.SubscriptionName)
+	err = p.store.Limits.Update(limits)
+	if err != nil {
+		slog.Error(err.Error())
+		p.b.PaymentInfo(payment, false)
+		return c.JSON(500, nil)
+	}
+
+	p.b.PaymentInfo(payment, true)
 	return c.JSON(200, nil)
 }
 

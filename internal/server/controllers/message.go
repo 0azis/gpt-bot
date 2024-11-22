@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"database/sql"
 	"errors"
 	"gpt-bot/internal/api"
 	"gpt-bot/internal/db"
@@ -93,6 +94,9 @@ func (m message) NewMessage(c echo.Context) error {
 		isNewChat = true
 	} else {
 		chatDb, err := m.store.Chat.GetByID(paramInt)
+		if errors.Is(err, sql.ErrNoRows) {
+			return c.JSON(404, nil)
+		}
 		if err != nil {
 			slog.Error(err.Error())
 			return c.JSON(500, nil)
@@ -123,6 +127,21 @@ func (m message) NewMessage(c echo.Context) error {
 	}
 	if balance == 0 {
 		return c.JSON(403, nil)
+	}
+
+	modelLimits, err := m.store.Limits.GetLimitsByModel(jwtUserID, model)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
+	}
+	if modelLimits == 0 {
+		return c.JSON(403, nil)
+	}
+
+	err = m.store.Limits.Reduce(jwtUserID, model)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
 	}
 
 	userMsg := domain.NewUserTextMessage(chat.ID, message.Content)
