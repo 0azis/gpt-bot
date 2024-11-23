@@ -44,18 +44,6 @@ type Subscription struct {
 	End    *string `json:"end"`
 }
 
-// var paymentTypes []string = []string{"stars", "crypto"}
-var paymentAsset map[string][]string = map[string][]string{
-	"crypto": []string{"USDT", "TON", "BTC", "ETH", "LTC", "BNB", "TRX", "USDC"},
-	"stars":  []string{"stars"},
-}
-var paymentPrices map[string]int = map[string]int{
-	"advanced-month": 1,
-	"advanced-year":  1,
-	"ultimate-month": 1,
-	"ultimate-year":  1,
-}
-
 type Limits struct {
 	UserID    int `json:"-"`
 	O1Preview int `json:"o1-preview" db:"o1-preview"`
@@ -98,6 +86,18 @@ func NewLimits(userID int, subscription string) Limits {
 	return Limits{}
 }
 
+// var paymentTypes []string = []string{"stars", "crypto"}
+var paymentAsset map[string][]string = map[string][]string{
+	"crypto":   []string{"USDT", "TON", "BTC", "ETH", "LTC", "BNB", "TRX", "USDC"},
+	"telegram": []string{"stars"},
+}
+var paymentPrices map[string]int = map[string]int{
+	"advanced-month": 1,
+	"advanced-year":  1,
+	"ultimate-month": 1,
+	"ultimate-year":  1,
+}
+
 type Payment struct {
 	UserID           int    `json:"userId"`
 	SubscriptionName string `json:"name"`
@@ -108,13 +108,13 @@ type Payment struct {
 }
 
 func (p Payment) Valid() bool {
-	if p.UserID == 0 || p.Amount == 0 {
+	if p.UserID == 0 {
 		return false
 	}
 	if !slices.Contains(paymentAsset[p.Type], p.Asset) {
 		return false
 	}
-	if paymentPrices[p.SubscriptionName] != p.Amount {
+	if _, ok := paymentPrices[p.SubscriptionName]; !ok {
 		return false
 	}
 
@@ -122,6 +122,8 @@ func (p Payment) Valid() bool {
 }
 
 func (p *Payment) ToReadable() {
+	p.Amount = paymentPrices[p.SubscriptionName]
+
 	oldName := p.SubscriptionName
 	newName := strings.Split(oldName, "-")
 	p.SubscriptionName = newName[0]
