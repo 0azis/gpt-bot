@@ -19,7 +19,6 @@ type cryptoClient struct {
 
 func newCrypto(token string) cryptoInterface {
 	client := cryptobot.NewClient(cryptobot.Options{
-		Testing:  true,
 		APIToken: token,
 	})
 	return cryptoClient{client}
