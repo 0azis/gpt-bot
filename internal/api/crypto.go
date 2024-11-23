@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"log/slog"
 	"strconv"
 
@@ -19,7 +18,6 @@ type cryptoClient struct {
 }
 
 func newCrypto(token string) cryptoInterface {
-	fmt.Println(token)
 	client := cryptobot.NewClient(cryptobot.Options{
 		Testing:  true,
 		APIToken: token,

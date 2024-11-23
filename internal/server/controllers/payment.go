@@ -52,7 +52,7 @@ func (p payment) CreateInvoiceLink(c echo.Context) error {
 	}
 
 	switch payment.Type {
-	case "stars":
+	case "telegram":
 		link, err := p.b.CreateInvoiceLink(payload, payment)
 		if err != nil {
 			slog.Error(err.Error())

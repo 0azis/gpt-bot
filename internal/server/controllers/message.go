@@ -59,14 +59,10 @@ func (m message) NewMessage(c echo.Context) error {
 		return c.JSON(400, nil)
 	}
 	if d, ok := multipart.Value["data"]; ok {
-		if d[0] == "" {
-			return c.JSON(400, nil)
-		}
 		message.Content = d[0]
-		// err := utils.BindToJSON(&message, d[0])
-		// if err != nil || !message.Valid() {
-		// 	return c.JSON(400, nil)
-		// }
+	}
+	if !message.Valid() {
+		return c.JSON(400, nil)
 	}
 
 	var chat domain.Chat
