@@ -2,6 +2,7 @@ package cron
 
 import (
 	"gpt-bot/internal/db"
+	"gpt-bot/internal/db/domain"
 	"log/slog"
 
 	"github.com/robfig/cron/v3"
@@ -56,6 +57,11 @@ func (c cronManager) updateBalance() error {
 	}
 	for _, user := range users {
 		diamonds, err := c.store.Subscription.DailyDiamonds(user.Subscription.Name)
+		if err != nil {
+			return err
+		}
+		limits := domain.NewLimits(user.ID, user.Subscription.Name)
+		err = c.store.Limits.Update(limits)
 		if err != nil {
 			return err
 		}
