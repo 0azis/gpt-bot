@@ -16,7 +16,7 @@ services:
     volumes:
       - "./migrations/migration.sql:/docker-entrypoint-initdb.d/init.sql"
     ports:
-      - "3306:3306"
+      - "4000:4000"
   http:
     container_name: server
     build:
