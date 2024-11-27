@@ -16,6 +16,9 @@ type UserRepository interface {
 	RaiseBalance(userID, sum int) error
 	ReduceBalance(userID, sum int) error
 	FillBalance(userID, balance int) error
+	// admin
+	CountUsers() (int, error)
+	DailyUsers() (int, error)
 }
 
 type SubscriptionRepository interface {
@@ -36,6 +39,11 @@ type LimitsRepository interface {
 type MessageRepository interface {
 	Create(msg domain.Message) error
 	GetByChat(userID, chatID int) ([]domain.Message, error)
+
+	// admin
+	RequestsDaily() (int, error)
+	RequestsWeekly() (int, error)
+	RequestsMontly() (int, error)
 }
 
 type ChatRepository interface {
@@ -46,6 +54,5 @@ type ChatRepository interface {
 }
 
 type BonusRepository interface {
-	ChangeAward(bonusType string, award int) error
-	GetAward(bonusType string) (int, error)
+	Create(bonus domain.Bonus) error
 }

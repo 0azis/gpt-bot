@@ -16,4 +16,6 @@ var (
 	// admin
 	adminPanelEnterPassword = "Введите пароль администратора."
 	adminPanelWrondPassword = "Неверный пароль админа. Уточните пароль у разработчика."
+	adminUserStatistics     = "Ошибка при получении данных о пользователях. Попробуйте позже."
+	adminRequestsStatistics = "Ошибка при получении данных о запросах к модели. Попробуйте позже."
 )

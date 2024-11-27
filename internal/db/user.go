@@ -115,3 +115,15 @@ func (u userDb) FillBalance(userID, balance int) error {
 	_, err := u.db.Query(`update users set balance = ? where id = ?`, balance, userID)
 	return err
 }
+
+func (u userDb) CountUsers() (int, error) {
+	var count int
+	err := u.db.Get(&count, `select count(id) from users`)
+	return count, err
+}
+
+func (u userDb) DailyUsers() (int, error) {
+	var dailyCount int
+	err := u.db.Get(&dailyCount, `select count(id) from users where created_at >= curdate()`)
+	return dailyCount, err
+}

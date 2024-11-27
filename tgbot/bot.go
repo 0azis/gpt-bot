@@ -13,10 +13,12 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 
 	"github.com/0azis/bot"
 	"github.com/0azis/bot/models"
+	"github.com/go-telegram/fsm"
 )
 
 type BotInterface interface {
@@ -33,21 +35,34 @@ type BotInterface interface {
 	PaymentInfo(paymentCredentials domain.Payment, status bool)
 	getTelegramAvatar(ctx context.Context, userID int64) string
 	informUser(ctx context.Context, userID int64, errMsg string)
+
+	// admin
+	adminHandler(ctx context.Context, b *bot.Bot, update *models.Update)
+	usersStatisticsCallback(ctx context.Context, b *bot.Bot, update *models.Update)
 }
 
 type tgBot struct {
 	telegram config.Telegram
 	store    db.Store
 	b        *bot.Bot
+	f        *fsm.FSM
 }
 
 func New(cfg config.Telegram, store db.Store) (BotInterface, error) {
 	b, err := bot.New(cfg.GetToken())
-	return tgBot{
+
+	tgBot := tgBot{
 		telegram: cfg,
 		store:    store,
 		b:        b,
-	}, err
+	}
+
+	f := fsm.New(stateDefault, map[fsm.StateID]fsm.Callback{
+		stateAskUserID:         tgBot.callbackUserID,
+		stateAskDiamondsAmount: tgBot.callbackDiamondsAmount,
+	})
+	tgBot.f = f
+	return tgBot, err
 }
 
 func (tb tgBot) Start() {
@@ -60,10 +75,15 @@ func (tb tgBot) Instance() *bot.Bot {
 	return tb.b
 }
 
-func (tg tgBot) InitHandlers() {
-	tg.b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeContains, tg.startHandler)
-	tg.b.RegisterHandler(bot.HandlerTypeMessageText, "/admin", bot.MatchTypeContains, tg.adminHandler)
-	tg.b.SetDefaultHandler(tg.defaultHandler)
+func (tb tgBot) InitHandlers() {
+	// base
+	tb.b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeContains, tb.startHandler)
+	tb.b.SetDefaultHandler(tb.defaultHandler)
+
+	// admin
+	tb.b.RegisterHandler(bot.HandlerTypeMessageText, "/admin", bot.MatchTypeContains, tb.adminHandler)
+	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, userStatistics, bot.MatchTypePrefix, tb.usersStatisticsCallback)
+	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, requestsStatistics, bot.MatchTypePrefix, tb.requestsStatisticsCallback)
 }
 
 func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -128,12 +148,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 			return
 		}
 
-		award, err := tb.store.Bonus.GetAward("referral")
-		if err != nil {
-			slog.Error(err.Error())
-			tb.informUser(ctx, int64(user.ID), internalError)
-			return
-		}
+		award := domain.ReferralAward
 		err = tb.store.User.RaiseBalance(ownerID, award)
 		if err != nil {
 			slog.Error(err.Error())
@@ -211,19 +226,17 @@ func (tb tgBot) informUser(ctx context.Context, userID int64, errorMsg string) {
 
 func (tb tgBot) PaymentInfo(payment domain.Payment, status bool) {
 	if status {
-		_, err := tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
+		tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
 			ChatID:    payment.UserID,
 			Text:      fmt.Sprintf(`Вы успешно купили подписку <b>%s</b> за <i>%d</i> звезд. Ваша подписка доступна до: %s`, payment.SubscriptionName, payment.Amount, payment.End),
 			ParseMode: models.ParseModeHTML,
 		})
-		fmt.Println(err)
 	} else {
-		_, err := tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
+		tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
 			ChatID:    payment.UserID,
 			Text:      fmt.Sprintf(`Неудалось купить подписку <b>%s</b> за <i>%d</i> звезд. Попробуйте позже`, payment.SubscriptionName, payment.Amount),
 			ParseMode: models.ParseModeHTML,
 		})
-		fmt.Println(err)
 	}
 }
 
@@ -287,23 +300,29 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 			tb.PaymentInfo(payment, true)
 			return
 		}
+		if update.CallbackQuery != nil {
+			diamonds := diamondsScheme{}
+			switch tb.f.Current(update.CallbackQuery.From.ID) {
+			case stateDefault:
+				tb.b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID: update.CallbackQuery.From.ID,
+					Text:   "Type",
+				})
+				return
+			case stateAskUserID:
+				id, err := strconv.Atoi(update.Message.Text)
+				if err != nil {
+				}
+				diamonds.userID = id
+				tb.f.Transition(update.Message.From.ID, stateAskDiamondsAmount, update.Message.Chat.ID)
+			case stateAskDiamondsAmount:
+				amount, err := strconv.Atoi(update.Message.Text)
+				if err != nil {
+				}
+				diamonds.amount = amount
+				fmt.Println(diamonds)
+				tb.giveDiamonds(diamonds.userID, diamonds.amount)
+			}
+		}
 	}
-}
-
-func (tb tgBot) adminHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	msgSlice := strings.Split(update.Message.Text, " ")
-	if len(msgSlice) == 1 {
-		tb.informUser(ctx, update.Message.From.ID, adminPanelEnterPassword)
-		return
-	}
-	password := msgSlice[1]
-	if tb.telegram.GetAdminPassword() != password {
-		tb.informUser(ctx, update.Message.From.ID, adminPanelWrondPassword)
-		return
-	}
-
-	b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID: update.Message.From.ID,
-		Text:   "You are an admin!",
-	})
 }
