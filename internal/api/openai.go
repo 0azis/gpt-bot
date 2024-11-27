@@ -30,16 +30,17 @@ func (oc openaiClient) SendMessage(model string, apiMsgs []domain.Message) (stri
 	for _, message := range apiMsgs {
 		if message.Type == "image" {
 			openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
-				Role: message.Role, Content: message.Content, MultiContent: []openai.ChatMessagePart{
+				Role: message.Role, MultiContent: []openai.ChatMessagePart{
 					{Type: openai.ChatMessagePartTypeImageURL, ImageURL: &openai.ChatMessageImageURL{
 						URL: message.Content,
 					}},
 				},
 			})
+		} else {
+			openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
+				Role: message.Role, Content: message.Content,
+			})
 		}
-		openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
-			Role: message.Role, Content: message.Content,
-		})
 	}
 	resp, err := oc.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
 		Model:    model,

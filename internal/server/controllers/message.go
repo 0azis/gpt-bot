@@ -13,7 +13,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-const uploadsRoute = "https://mywebai.top/api/v1/uploads/"
+const uploadsRoute = "https://api.mywebai.space/api/v1/uploads/"
 
 type messageControllers interface {
 	NewMessage(c echo.Context) error
