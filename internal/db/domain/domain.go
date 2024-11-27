@@ -92,10 +92,10 @@ var paymentAsset map[string][]string = map[string][]string{
 	"telegram": []string{"stars"},
 }
 var paymentPrices map[string]map[string]int = map[string]map[string]int{
-	"advanced-month": map[string]int{"stars": 329, "crypto": 3},
-	"advanced-year":  map[string]int{"stars": 3299, "crypto": 30},
-	"ultimate-month": map[string]int{"stars": 1279, "crypto": 13},
-	"ultimate-year":  map[string]int{"stars": 10999, "crypto": 104},
+	"advanced-month": map[string]int{"telegram": 329, "crypto": 3},
+	"advanced-year":  map[string]int{"telegram": 3299, "crypto": 30},
+	"ultimate-month": map[string]int{"telegram": 1279, "crypto": 13},
+	"ultimate-year":  map[string]int{"telegram": 10999, "crypto": 104},
 }
 
 type Payment struct {
