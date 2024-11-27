@@ -219,14 +219,10 @@ func (c *Chat) SetType() bool {
 	return c.Type != ""
 }
 
-type bonusType string
-
-const (
-	BonusReferral bonusType = "referral"
-)
+const ReferralAward = 10
 
 type Bonus struct {
-	ID        int       `json:"id" db:"id"`
-	Award     int       `json:"award" db:"award"`
-	BonusType bonusType `json:"bonusType" db:"bonus_type"`
+	ID        int `json:"id"`
+	ChannelID int `json:"channel"`
+	Award     int `json:"award"`
 }

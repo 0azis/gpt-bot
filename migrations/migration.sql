@@ -4,6 +4,7 @@ CREATE TABLE users(
     balance int default 150 not null,
     referral_code varchar(5),
     referred_by varchar(5),
+    created_at timestamp default current_timestamp,
     primary key(id)
 );
 
@@ -28,12 +29,20 @@ CREATE TABLE messages(
     primary key(id)
 );
 
-CREATE TABLE bonuses(
-    id smallint not null auto_increment,
-    award tinyint not null,
-    bonus_type enum('referral') not null,
-    primary key(id)
-);
+-- CREATE TABLE bonuses(
+--     id smallint not null auto_increment,
+--     channel_id bigint not null,
+--     award int not null,
+--     primary key(id)
+-- );
+
+-- CREATE TABLE channel_subscriptions (
+--     user_id bigint not null,
+--     channel_id bigint not null,
+--     isSubscribed bool default false not null,
+--     foreign key (channel_id) references bonuses (channel_id) on delete cascade,
+--     primary key(user_id, channel_id)
+-- );
 
 CREATE TABLE subscriptions_info(
     name enum('standard', 'advanced', 'ultimate') not null,
@@ -62,7 +71,7 @@ CREATE TABLE limits (
     primary key(user_id)
 );
 
-INSERT INTO bonuses (award, bonus_type) values (10, 'referral');
+-- INSERT INTO bonuses (award, bonus_type) values (10, 'referral');
 INSERT INTO subscriptions_info(name, diamonds) values ('standard', 150);
 INSERT INTO subscriptions_info(name, diamonds) values ('advanced', 1500);
 INSERT INTO subscriptions_info(name, diamonds) values ('ultimate', 4000);
