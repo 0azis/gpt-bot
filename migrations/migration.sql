@@ -38,7 +38,7 @@ CREATE TABLE bonuses(
 
 CREATE TABLE user_bonuses(
     bonus_id smallint not null,
-    user_id smallint not null,
+    user_id bigint not null,
     completed bool default false not null,
     completed_at timestamp null,
     foreign key (bonus_id) references bonuses (id) on delete cascade,
