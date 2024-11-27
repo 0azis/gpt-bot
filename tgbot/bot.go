@@ -32,6 +32,7 @@ type BotInterface interface {
 
 	// helpers
 	CreateInvoiceLink(payload []byte, paymentCredentials domain.Payment) (string, error)
+	IsUserMember(channelName string, userID int) bool
 	PaymentInfo(paymentCredentials domain.Payment, status bool)
 	getTelegramAvatar(ctx context.Context, userID int64) string
 	informUser(ctx context.Context, userID int64, errMsg string)
@@ -217,6 +218,19 @@ func (tb tgBot) CreateInvoiceLink(payload []byte, payment domain.Payment) (strin
 		},
 	})
 	return link, err
+}
+
+func (tb tgBot) IsUserMember(channelName string, userID int) bool {
+	member, err := tb.b.GetChatMember(context.Background(), &bot.GetChatMemberParams{
+		ChatID: channelName,
+		UserID: int64(userID),
+	})
+	fmt.Println(member)
+	if err != nil {
+		return false
+	}
+
+	return true
 }
 
 func (tb tgBot) informUser(ctx context.Context, userID int64, errorMsg string) {

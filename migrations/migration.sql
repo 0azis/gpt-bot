@@ -29,20 +29,22 @@ CREATE TABLE messages(
     primary key(id)
 );
 
--- CREATE TABLE bonuses(
---     id smallint not null auto_increment,
---     channel_id bigint not null,
---     award int not null,
---     primary key(id)
--- );
+CREATE TABLE bonuses(
+    id smallint not null auto_increment,
+    channel_name varchar(255) not null,
+    award int not null,
+    primary key(id)
+);
 
--- CREATE TABLE channel_subscriptions (
---     user_id bigint not null,
---     channel_id bigint not null,
---     isSubscribed bool default false not null,
---     foreign key (channel_id) references bonuses (channel_id) on delete cascade,
---     primary key(user_id, channel_id)
--- );
+CREATE TABLE user_bonuses(
+    bonus_id smallint not null,
+    user_id smallint not null,
+    completed bool default false not null,
+    completed_at timestamp null,
+    foreign key (bonus_id) references bonuses (id) on delete cascade,
+    foreign key (user_id) references users (id) on delete cascade,
+    primary key(user_id, bonus_id)
+);
 
 CREATE TABLE subscriptions_info(
     name enum('standard', 'advanced', 'ultimate') not null,

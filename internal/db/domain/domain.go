@@ -222,7 +222,22 @@ func (c *Chat) SetType() bool {
 const ReferralAward = 10
 
 type Bonus struct {
-	ID        int `json:"id"`
-	ChannelID int `json:"channel"`
-	Award     int `json:"award"`
+	ID      int     `json:"id" db:"id"`
+	Channel channel `json:"channel"`
+	Award   int     `json:"award" db:"award"`
+}
+
+func (b Bonus) Valid() bool {
+	return b.Award != 0 || b.Channel.Name != ""
+}
+
+type channel struct {
+	Title  string `json:"title"`
+	Name   string `json:"name" db:"channel_name"`
+	Avatar string `json:"avatar"`
+	Link   string `json:"link"`
+}
+
+func (c *channel) SetLink() {
+	c.Link = "https://t.me/" + c.Name
 }
