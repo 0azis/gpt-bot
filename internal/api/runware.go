@@ -18,7 +18,7 @@ type runwareClient struct {
 }
 
 func newRunware(token string) runwareInterface {
-	return runwareClient{token, "https://api.runware.ai/v1"}
+	return runwareClient{"https://api.runware.ai/v1", token}
 }
 
 type requestBody struct {
