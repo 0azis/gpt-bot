@@ -55,4 +55,13 @@ type ChatRepository interface {
 
 type BonusRepository interface {
 	Create(bonus domain.Bonus) error
+	GetCompleted(userID int) (completedBonuses []domain.Bonus, err error)
+	GetUncompleted(userID int) (uncompletedBonuses []domain.Bonus, err error)
+	Delete(bonusID int) error
+	MakeCompleted(bonusID, userID int) error
+	GetAward(bonusID, userID int) (int, error)
+
+	// admin
+	DailyBonuses() (dailyBonuses []domain.Bonus, err error)
+	AllBonuses() (allBonuses []domain.Bonus, err error)
 }

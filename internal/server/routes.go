@@ -22,6 +22,7 @@ func InitRoutes(e *echo.Echo, store db.Store, api api.Interface, b tgbot.BotInte
 	messageRoutes(apiRoute, store, api, savePath)
 	paymentRoutes(apiRoute, store, b, api)
 	imageRoutes(apiRoute, savePath)
+	bonusRoutes(apiRoute, store, b)
 }
 
 func userRoutes(apiRoute *echo.Group, store db.Store) {
@@ -66,4 +67,14 @@ func imageRoutes(apiRoute *echo.Group, savePath string) {
 	controller := controllers.NewImageControllers(savePath)
 
 	image.POST("", controller.UploadImage)
+}
+
+func bonusRoutes(apiRoute *echo.Group, store db.Store, b tgbot.BotInterface) {
+	bonus := apiRoute.Group("/bonus")
+	controller := controllers.NewBonusControllers(store, b)
+
+	bonus.POST("", controller.Create)
+	bonus.POST(":id", controller.GetAward)
+	bonus.GET("", controller.GetAll)
+	bonus.DELETE(":id", controller.Delete)
 }
