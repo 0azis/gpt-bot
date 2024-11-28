@@ -22,7 +22,8 @@ func (b bonusDb) Create(bonus domain.Bonus) error {
 		return err
 	}
 
-	_, err = b.db.Query(`insert into user_bonuses (bonus_id, user_id) select ?, id from users`, bonusID)
+	rows, err := b.db.Query(`insert into user_bonuses (bonus_id, user_id) select ?, id from users`, bonusID)
+	defer rows.Close()
 	return err
 }
 
@@ -32,6 +33,7 @@ func (b bonusDb) GetAll(userID int) ([]*domain.Bonus, error) {
 	if err != nil {
 		return bonuses, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var bonus domain.Bonus
@@ -51,6 +53,7 @@ func (b bonusDb) GetOne(bonusID int) (domain.Bonus, error) {
 	if err != nil {
 		return bonus, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		err = rows.Scan(&bonus.ID, &bonus.Channel.Name, &bonus.Award, &bonus.Awarded)
@@ -111,13 +114,15 @@ func (b bonusDb) AllBonuses() (int, error) {
 }
 
 func (b bonusDb) Delete(channel_name string) error {
-	_, err := b.db.Query(`delete from bonuses where channel_name = ?`, channel_name)
+	rows, err := b.db.Query(`delete from bonuses where channel_name = ?`, channel_name)
+	defer rows.Close()
 	return err
 }
 
 func (b bonusDb) MakeAwarded(bonusID, userID int) error {
 	timestamp := utils.Timestamp()
-	_, err := b.db.Query(`update user_bonuses set awarded = 1, awarded_at = ? where bonus_id = ? and user_id = ?`, timestamp, bonusID, userID)
+	rows, err := b.db.Query(`update user_bonuses set awarded = 1, awarded_at = ? where bonus_id = ? and user_id = ?`, timestamp, bonusID, userID)
+	defer rows.Close()
 	return err
 }
 
@@ -128,6 +133,7 @@ func (b bonusDb) GetAward(bonusID, userID int) (int, error) {
 }
 
 func (b bonusDb) InitBonuses(userID int) error {
-	_, err := b.db.Query(`insert into user_bonuses (bonus_id, user_id) select id, ? from bonuses on duplicate key update bonus_id=bonus_id`, userID)
+	rows, err := b.db.Query(`insert into user_bonuses (bonus_id, user_id) select id, ? from bonuses on duplicate key update bonus_id=bonus_id`, userID)
+	defer rows.Close()
 	return err
 }

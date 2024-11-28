@@ -11,7 +11,8 @@ type messageDb struct {
 }
 
 func (m messageDb) Create(msg domain.Message) error {
-	_, err := m.db.Query(`insert into messages (chat_id, content, role, type) values (?, ?, ?, ?)`, msg.ChatID, msg.Content, msg.Role, msg.Type)
+	rows, err := m.db.Query(`insert into messages (chat_id, content, role, type) values (?, ?, ?, ?)`, msg.ChatID, msg.Content, msg.Role, msg.Type)
+	defer rows.Close()
 	return err
 }
 

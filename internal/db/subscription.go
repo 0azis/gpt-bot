@@ -9,7 +9,8 @@ type subscriptionDb struct {
 }
 
 func (s subscriptionDb) InitStandard(userID int) error {
-	_, err := s.db.Query(`insert into subscriptions (user_id) values (?) on duplicate key update user_id = user_id`, userID)
+	rows, err := s.db.Query(`insert into subscriptions (user_id) values (?) on duplicate key update user_id = user_id`, userID)
+	defer rows.Close()
 	return err
 }
 
@@ -19,6 +20,7 @@ func (s subscriptionDb) UserSubscription(userID int64, name string) (int64, erro
 	if err != nil {
 		return id, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		err = rows.Scan(&id)
@@ -31,12 +33,14 @@ func (s subscriptionDb) UserSubscription(userID int64, name string) (int64, erro
 }
 
 func (s subscriptionDb) EndTime() error {
-	_, err := s.db.Query(`update subscriptions set name = 'standard', start = (current_date()), end = null where end < now()`)
+	rows, err := s.db.Query(`update subscriptions set name = 'standard', start = (current_date()), end = null where end < now()`)
+	defer rows.Close()
 	return err
 }
 
 func (s subscriptionDb) Update(userID int, name string, end string) error {
-	_, err := s.db.Query(`update subscriptions set name = ?, end = ? where user_id = ?`, name, end, userID)
+	rows, err := s.db.Query(`update subscriptions set name = ?, end = ? where user_id = ?`, name, end, userID)
+	defer rows.Close()
 	return err
 }
 

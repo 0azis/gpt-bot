@@ -61,7 +61,7 @@ func New(cfg config.Telegram, store db.Store) (BotInterface, error) {
 		b:        b,
 	}
 
-	f := fsm.New(diamondStateDefault, map[fsm.StateID]fsm.Callback{
+	f := fsm.New(stateDefault, map[fsm.StateID]fsm.Callback{
 		//diamonds
 		diamondStateAskUserID:         tgBot.callbackUserID,
 		diamondStateAskDiamondsAmount: tgBot.callbackDiamondsAmount,
@@ -72,6 +72,9 @@ func New(cfg config.Telegram, store db.Store) (BotInterface, error) {
 		bonusStateAskChannel: tgBot.callbackChannelName,
 		bonusStateAskAward:   tgBot.callbackBonusAward,
 		bonusStateDelete:     tgBot.callbackChannelName,
+
+		// default
+		// stateDefault: tgBot.stateDefault,
 	})
 	tgBot.f = f
 	return tgBot, err
@@ -362,11 +365,10 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 		}
 		if update.Message.Text != "" {
 			switch tb.f.Current(update.Message.From.ID) {
-			// diamonds
-			case diamondStateDefault:
-				tb.b.SendMessage(ctx, &bot.SendMessageParams{
+			case stateDefault:
+				b.SendMessage(ctx, &bot.SendMessageParams{
 					ChatID: update.Message.From.ID,
-					Text:   "Type",
+					Text:   "Введена некорректная команда",
 				})
 				return
 			case diamondStateAskUserID:
@@ -381,6 +383,7 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 				}
 				diamondsScheme.amount = amount
 				tb.giveDiamonds(diamondsScheme, update.Message)
+				tb.f.Transition(update.Message.From.ID, stateDefault, update.Message.Chat.ID)
 
 			// subscription
 			case subscriptionStateAskUserID:
@@ -392,7 +395,7 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 			case subscriptionStateAskName:
 				subscriptionScheme.name = update.Message.Text
 				tb.giveSubscription(subscriptionScheme, update.Message)
-
+				tb.f.Transition(update.Message.From.ID, stateDefault, update.Message.Chat.ID)
 			// bonus
 			case bonusStateAskChannel:
 				bonusScheme.channel_name = update.Message.Text
@@ -404,9 +407,12 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 				}
 				bonusScheme.award = award
 				tb.createBonus(bonusScheme, update.Message)
+				tb.f.Transition(update.Message.From.ID, stateDefault, update.Message.Chat.ID)
+
 			case bonusStateDelete:
 				bonusScheme.channel_name = update.Message.Text
 				tb.deleteBonus(bonusScheme, update.Message)
+				tb.f.Transition(update.Message.From.ID, stateDefault, update.Message.Chat.ID)
 			}
 		}
 	}
