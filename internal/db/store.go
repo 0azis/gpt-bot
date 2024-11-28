@@ -3,6 +3,7 @@ package db
 import (
 	"gpt-bot/config"
 	"gpt-bot/internal/db/repository"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -20,6 +21,10 @@ type Store struct {
 
 func New(cfg config.Database) (Store, error) {
 	db, err := sqlx.Connect("mysql", cfg.Addr())
+
+	db.SetMaxIdleConns(150)
+	db.SetMaxOpenConns(150)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	store := Store{
 		User:         userDb{db},

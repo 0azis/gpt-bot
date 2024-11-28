@@ -21,8 +21,8 @@ const (
 	deleteBonus        = "btn_6"
 	bonusStatistics    = "btn_7"
 
+	stateDefault fsm.StateID = "stateDefault"
 	// state
-	diamondStateDefault           fsm.StateID = "diamond_default"
 	diamondStateAskUserID         fsm.StateID = "diamond_ask_user_id"
 	diamondStateAskDiamondsAmount fsm.StateID = "diamond_ask_diamonds_amount"
 	diamondStateFinish            fsm.StateID = "diamond_finish"
@@ -243,26 +243,26 @@ func (tb tgBot) giveSubscription(subscriptionScheme subscriptionData, msg *model
 	err := tb.store.Subscription.Update(subscription.UserID, subscription.SubscriptionName, subscription.End)
 	if err != nil {
 		slog.Error(err.Error())
-		tb.informUser(ctx, int64(subscription.UserID), internalError)
+		tb.informUser(ctx, int64(msg.From.ID), internalError)
 		return
 	}
 	diamonds, err := tb.store.Subscription.DailyDiamonds(subscription.SubscriptionName)
 	if err != nil {
 		slog.Error(err.Error())
-		tb.informUser(ctx, int64(subscription.UserID), internalError)
+		tb.informUser(ctx, int64(msg.From.ID), internalError)
 		return
 	}
 	err = tb.store.User.FillBalance(subscription.UserID, diamonds)
 	if err != nil {
 		slog.Error(err.Error())
-		tb.informUser(ctx, int64(subscription.UserID), internalError)
+		tb.informUser(ctx, int64(msg.From.ID), internalError)
 		return
 	}
 	limits := domain.NewLimits(subscription.UserID, subscription.SubscriptionName)
 	err = tb.store.Limits.Update(limits)
 	if err != nil {
 		slog.Error(err.Error())
-		tb.informUser(ctx, int64(subscription.UserID), internalError)
+		tb.informUser(ctx, int64(msg.From.ID), internalError)
 		return
 	}
 

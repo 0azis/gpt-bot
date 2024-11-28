@@ -14,7 +14,8 @@ type userDb struct {
 func (u userDb) Create(user domain.User) error {
 	refCode := utils.GenerateReferralCode()
 
-	_, err := u.db.Query(`insert into users (id, avatar, referral_code) values (?, ?, ?) on duplicate key update avatar = avatar`, user.ID, user.Avatar, refCode)
+	rows, err := u.db.Query(`insert into users (id, avatar, referral_code) values (?, ?, ?) on duplicate key update avatar = avatar`, user.ID, user.Avatar, refCode)
+	defer rows.Close()
 	return err
 }
 
@@ -74,7 +75,8 @@ func (u userDb) IsUserReferred(userID int, refCode string) (int, error) {
 }
 
 func (u userDb) SetReferredBy(userID int, refBy string) error {
-	_, err := u.db.Query(`update users set referred_by = ? where id = ?`, refBy, userID)
+	rows, err := u.db.Query(`update users set referred_by = ? where id = ?`, refBy, userID)
+	defer rows.Close()
 	return err
 }
 
@@ -90,6 +92,7 @@ func (u userDb) GetBalance(userID int) (int, error) {
 	if err != nil {
 		return balance, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		err = rows.Scan(&balance)
@@ -102,17 +105,20 @@ func (u userDb) GetBalance(userID int) (int, error) {
 }
 
 func (u userDb) RaiseBalance(userID, sum int) error {
-	_, err := u.db.Query(`update users set balance = balance + ? where id = ?`, sum, userID)
+	rows, err := u.db.Query(`update users set balance = balance + ? where id = ?`, sum, userID)
+	defer rows.Close()
 	return err
 }
 
 func (u userDb) ReduceBalance(userID, sum int) error {
-	_, err := u.db.Query(`update users set balance = balance - ? where id = ?`, sum, userID)
+	rows, err := u.db.Query(`update users set balance = balance - ? where id = ?`, sum, userID)
+	defer rows.Close()
 	return err
 }
 
 func (u userDb) FillBalance(userID, balance int) error {
-	_, err := u.db.Query(`update users set balance = ? where id = ?`, balance, userID)
+	rows, err := u.db.Query(`update users set balance = ? where id = ?`, balance, userID)
+	defer rows.Close()
 	return err
 }
 
