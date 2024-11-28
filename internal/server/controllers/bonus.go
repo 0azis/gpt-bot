@@ -1,8 +1,9 @@
 package controllers
 
 import (
+	"database/sql"
+	"errors"
 	"gpt-bot/internal/db"
-	"gpt-bot/internal/db/domain"
 	"gpt-bot/tgbot"
 	"gpt-bot/utils"
 	"log/slog"
@@ -12,9 +13,7 @@ import (
 )
 
 type bonusControllers interface {
-	Create(c echo.Context) error
 	GetAll(c echo.Context) error
-	Delete(c echo.Context) error
 	GetAward(c echo.Context) error
 }
 
@@ -23,77 +22,27 @@ type bonus struct {
 	tg    tgbot.BotInterface
 }
 
-func (b bonus) Create(c echo.Context) error {
-	var bonus domain.Bonus
-	err := c.Bind(&bonus)
-	if err != nil || !bonus.Valid() {
-		return c.JSON(400, nil)
-	}
-
-	err = b.store.Bonus.Create(bonus)
-	if err != nil {
-		slog.Error(err.Error())
-		return c.JSON(500, nil)
-	}
-
-	return c.JSON(201, nil)
-}
-
 func (b bonus) GetAll(c echo.Context) error {
 	jwtUserID := utils.ExtractUserID(c)
-	value := c.QueryParam("completed")
-	isCompleted, err := strconv.ParseBool(value)
-	if err != nil {
-		return c.JSON(400, nil)
-	}
 
-	switch isCompleted {
-	case true:
-		bonuses, err := b.store.Bonus.GetCompleted(jwtUserID)
-		if err != nil {
-			slog.Error(err.Error())
-			return c.JSON(500, nil)
-		}
-
-		for _, bonus := range bonuses {
-			if b.tg.IsUserMember(bonus.Channel.Name, jwtUserID) {
-				err := b.store.Bonus.MakeCompleted(bonus.ID, jwtUserID)
-				if err != nil {
-					slog.Error(err.Error())
-					return c.JSON(500, nil)
-				}
-			}
-		}
-
-		return c.JSON(200, bonuses)
-
-	case false:
-		bonuses, err := b.store.Bonus.GetUncompleted(jwtUserID)
-		if err != nil {
-			slog.Error(err.Error())
-			return c.JSON(500, nil)
-		}
-
-		return c.JSON(200, bonuses)
-	default:
-		return c.JSON(400, nil)
-	}
-}
-
-func (b bonus) Delete(c echo.Context) error {
-	value := c.Param("id")
-	bonusID, err := strconv.Atoi(value)
-	if err != nil {
-		return c.JSON(400, nil)
-	}
-
-	err = b.store.Bonus.Delete(bonusID)
+	bonuses, err := b.store.Bonus.GetAll(jwtUserID)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
+	for _, bonus := range bonuses {
+		channel, err := b.tg.GetChannelInfo(bonus.Channel.Name)
+		if err != nil {
+			slog.Error(err.Error())
+			return c.JSON(500, nil)
+		}
+		bonus.Channel = channel
+		if b.tg.IsUserMember(channel.Name, jwtUserID) {
+			bonus.Completed = true
+		}
+	}
 
-	return c.JSON(200, nil)
+	return c.JSON(200, bonuses)
 }
 
 func (b bonus) GetAward(c echo.Context) error {
@@ -105,6 +54,22 @@ func (b bonus) GetAward(c echo.Context) error {
 		return c.JSON(400, nil)
 	}
 
+	bonus, err := b.store.Bonus.GetOne(bonusID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return c.JSON(404, nil)
+	}
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
+	}
+
+	if !b.tg.IsUserMember(bonus.Channel.Name, jwtUserID) {
+		return c.JSON(400, nil)
+	}
+	if bonus.Awarded {
+		return c.JSON(400, nil)
+	}
+
 	award, err := b.store.Bonus.GetAward(bonusID, jwtUserID)
 	if err != nil {
 		slog.Error(err.Error())
@@ -112,6 +77,12 @@ func (b bonus) GetAward(c echo.Context) error {
 	}
 
 	err = b.store.User.RaiseBalance(jwtUserID, award)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
+	}
+
+	err = b.store.Bonus.MakeAwarded(bonusID, jwtUserID)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)

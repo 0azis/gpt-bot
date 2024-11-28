@@ -34,6 +34,7 @@ type BotInterface interface {
 	CreateInvoiceLink(payload []byte, paymentCredentials domain.Payment) (string, error)
 	IsUserMember(channelName string, userID int) bool
 	PaymentInfo(paymentCredentials domain.Payment, status bool)
+	GetChannelInfo(channelName string) (domain.Channel, error)
 	getTelegramAvatar(ctx context.Context, userID int64) string
 	informUser(ctx context.Context, userID int64, errMsg string)
 
@@ -60,9 +61,17 @@ func New(cfg config.Telegram, store db.Store) (BotInterface, error) {
 		b:        b,
 	}
 
-	f := fsm.New(stateDefault, map[fsm.StateID]fsm.Callback{
-		stateAskUserID:         tgBot.callbackUserID,
-		stateAskDiamondsAmount: tgBot.callbackDiamondsAmount,
+	f := fsm.New(diamondStateDefault, map[fsm.StateID]fsm.Callback{
+		//diamonds
+		diamondStateAskUserID:         tgBot.callbackUserID,
+		diamondStateAskDiamondsAmount: tgBot.callbackDiamondsAmount,
+		// subscription
+		subscriptionStateAskUserID: tgBot.callbackUserID,
+		subscriptionStateAskName:   tgBot.callbackSubscriptionName,
+		// bonus
+		bonusStateAskChannel: tgBot.callbackChannelName,
+		bonusStateAskAward:   tgBot.callbackBonusAward,
+		bonusStateDelete:     tgBot.callbackChannelName,
 	})
 	tgBot.f = f
 	return tgBot, err
@@ -85,8 +94,7 @@ func (tb tgBot) InitHandlers() {
 
 	// admin
 	tb.b.RegisterHandler(bot.HandlerTypeMessageText, "/admin", bot.MatchTypeContains, tb.adminHandler)
-	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, userStatistics, bot.MatchTypePrefix, tb.usersStatisticsCallback)
-	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, requestsStatistics, bot.MatchTypePrefix, tb.requestsStatisticsCallback)
+	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "btn_", bot.MatchTypePrefix, tb.callbackHandler)
 }
 
 func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -108,6 +116,12 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 	}
 	limits := domain.NewLimits(user.ID, domain.SubscriptionStandard)
 	err = tb.store.Limits.Create(limits)
+	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, int64(user.ID), userCreationError)
+		return
+	}
+	err = tb.store.Bonus.InitBonuses(user.ID)
 	if err != nil {
 		slog.Error(err.Error())
 		tb.informUser(ctx, int64(user.ID), userCreationError)
@@ -221,16 +235,46 @@ func (tb tgBot) CreateInvoiceLink(payload []byte, payment domain.Payment) (strin
 }
 
 func (tb tgBot) IsUserMember(channelName string, userID int) bool {
-	member, err := tb.b.GetChatMember(context.Background(), &bot.GetChatMemberParams{
+	channelName = "@" + channelName
+	member, _ := tb.b.GetChatMember(context.Background(), &bot.GetChatMemberParams{
 		ChatID: channelName,
 		UserID: int64(userID),
 	})
-	fmt.Println(member)
-	if err != nil {
+
+	if member.Member == nil {
 		return false
 	}
 
 	return true
+}
+
+func (tb tgBot) GetChannelInfo(channelName string) (domain.Channel, error) {
+	var channel domain.Channel
+	channel.Name = channelName
+	channelName = "@" + channelName
+
+	tgChannel, err := tb.b.GetChat(context.Background(), &bot.GetChatParams{
+		ChatID: channelName,
+	})
+	if err != nil {
+		slog.Error(err.Error())
+		return channel, err
+	}
+
+	channel.Title = tgChannel.Title
+	channel.Link = "https://t.me/" + tgChannel.Username
+
+	file, err := tb.b.GetFile(context.Background(), &bot.GetFileParams{
+		FileID: tgChannel.Photo.SmallFileID,
+	})
+	if err != nil {
+		slog.Error(err.Error())
+		return channel, err
+	}
+	url := tb.b.FileDownloadLink(file)
+
+	channel.Avatar = url
+	return channel, nil
 }
 
 func (tb tgBot) informUser(ctx context.Context, userID int64, errorMsg string) {
@@ -316,28 +360,53 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 			tb.PaymentInfo(payment, true)
 			return
 		}
-		if update.CallbackQuery != nil {
-			diamonds := diamondsScheme{}
-			switch tb.f.Current(update.CallbackQuery.From.ID) {
-			case stateDefault:
+		if update.Message.Text != "" {
+			switch tb.f.Current(update.Message.From.ID) {
+			// diamonds
+			case diamondStateDefault:
 				tb.b.SendMessage(ctx, &bot.SendMessageParams{
-					ChatID: update.CallbackQuery.From.ID,
+					ChatID: update.Message.From.ID,
 					Text:   "Type",
 				})
 				return
-			case stateAskUserID:
+			case diamondStateAskUserID:
 				id, err := strconv.Atoi(update.Message.Text)
 				if err != nil {
 				}
-				diamonds.userID = id
-				tb.f.Transition(update.Message.From.ID, stateAskDiamondsAmount, update.Message.Chat.ID)
-			case stateAskDiamondsAmount:
+				diamondsScheme.userID = id
+				tb.f.Transition(update.Message.From.ID, diamondStateAskDiamondsAmount, update.Message.Chat.ID)
+			case diamondStateAskDiamondsAmount:
 				amount, err := strconv.Atoi(update.Message.Text)
 				if err != nil {
 				}
-				diamonds.amount = amount
-				fmt.Println(diamonds)
-				tb.giveDiamonds(diamonds.userID, diamonds.amount)
+				diamondsScheme.amount = amount
+				tb.giveDiamonds(diamondsScheme, update.Message)
+
+			// subscription
+			case subscriptionStateAskUserID:
+				id, err := strconv.Atoi(update.Message.Text)
+				if err != nil {
+				}
+				subscriptionScheme.userID = id
+				tb.f.Transition(update.Message.From.ID, subscriptionStateAskName, update.Message.Chat.ID)
+			case subscriptionStateAskName:
+				subscriptionScheme.name = update.Message.Text
+				tb.giveSubscription(subscriptionScheme, update.Message)
+
+			// bonus
+			case bonusStateAskChannel:
+				bonusScheme.channel_name = update.Message.Text
+				tb.f.Transition(update.Message.From.ID, bonusStateAskAward, update.Message.Chat.ID)
+			case bonusStateAskAward:
+				award, err := strconv.Atoi(update.Message.Text)
+				if err != nil {
+
+				}
+				bonusScheme.award = award
+				tb.createBonus(bonusScheme, update.Message)
+			case bonusStateDelete:
+				bonusScheme.channel_name = update.Message.Text
+				tb.deleteBonus(bonusScheme, update.Message)
 			}
 		}
 	}

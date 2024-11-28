@@ -31,7 +31,7 @@ CREATE TABLE messages(
 
 CREATE TABLE bonuses(
     id smallint not null auto_increment,
-    channel_name varchar(255) not null,
+    channel_name varchar(255) not null unique,
     award int not null,
     primary key(id)
 );
@@ -39,8 +39,8 @@ CREATE TABLE bonuses(
 CREATE TABLE user_bonuses(
     bonus_id smallint not null,
     user_id bigint not null,
-    completed bool default false not null,
-    completed_at timestamp null,
+    awarded bool default false not null,
+    awarded_at date null,
     foreign key (bonus_id) references bonuses (id) on delete cascade,
     foreign key (user_id) references users (id) on delete cascade,
     primary key(user_id, bonus_id)

@@ -23,18 +23,18 @@ func (m messageDb) GetByChat(userID, chatID int) ([]domain.Message, error) {
 
 func (m messageDb) RequestsDaily() (int, error) {
 	var dailyCount int
-	err := m.db.Get(&dailyCount, `select count(*) from messages where created_at >= curdate()`)
+	err := m.db.Get(&dailyCount, `select count(*) from messages where date(created_at) >= curdate() and role = "assistant"`)
 	return dailyCount, err
 }
 
 func (m messageDb) RequestsWeekly() (int, error) {
 	var weeklyCount int
-	err := m.db.Get(&weeklyCount, `select count(*) from messages where created_at >= date_sub(curdate(), interval dayofmonth(curdate())-1 day)`)
+	err := m.db.Get(&weeklyCount, `select count(*) from messages where date(created_at) >= date_sub(curdate(), interval dayofweek(curdate())-1 day) and role = "assistant"`)
 	return weeklyCount, err
 }
 
 func (m messageDb) RequestsMontly() (int, error) {
 	var montlyCount int
-	err := m.db.Get(&montlyCount, `select count(*) from messages where created_at >= date_sub(curdate(), interval dayofweek(curdate())-1 day)`)
+	err := m.db.Get(&montlyCount, `select count(*) from messages where date(created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day) and role = "assistant"`)
 	return montlyCount, err
 }

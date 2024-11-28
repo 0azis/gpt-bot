@@ -92,7 +92,7 @@ var paymentAsset map[string][]string = map[string][]string{
 	"telegram": []string{"stars"},
 }
 var paymentPrices map[string]map[string]int = map[string]map[string]int{
-	"advanced-month": map[string]int{"telegram": 329, "crypto": 3},
+	"advanced-month": map[string]int{"telegram": 379, "crypto": 3},
 	"advanced-year":  map[string]int{"telegram": 3299, "crypto": 30},
 	"ultimate-month": map[string]int{"telegram": 1279, "crypto": 13},
 	"ultimate-year":  map[string]int{"telegram": 10999, "crypto": 104},
@@ -222,22 +222,20 @@ func (c *Chat) SetType() bool {
 const ReferralAward = 10
 
 type Bonus struct {
-	ID      int     `json:"id" db:"id"`
-	Channel channel `json:"channel"`
-	Award   int     `json:"award" db:"award"`
+	ID        int     `json:"id" db:"id"`
+	Channel   Channel `json:"channel"`
+	Award     int     `json:"award" db:"award"`
+	Completed bool    `json:"completed"`
+	Awarded   bool    `json:"awarded"`
 }
 
 func (b Bonus) Valid() bool {
 	return b.Award != 0 || b.Channel.Name != ""
 }
 
-type channel struct {
+type Channel struct {
 	Title  string `json:"title"`
 	Name   string `json:"name" db:"channel_name"`
 	Avatar string `json:"avatar"`
 	Link   string `json:"link"`
-}
-
-func (c *channel) SetLink() {
-	c.Link = "https://t.me/" + c.Name
 }

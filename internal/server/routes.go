@@ -63,18 +63,16 @@ func imageRoutes(apiRoute *echo.Group, savePath string) {
 			slog.Error(err.Error())
 		}
 	}
-	image := apiRoute.Group("/image")
+	image := apiRoute.Group("/image", AuthMiddleware)
 	controller := controllers.NewImageControllers(savePath)
 
 	image.POST("", controller.UploadImage)
 }
 
 func bonusRoutes(apiRoute *echo.Group, store db.Store, b tgbot.BotInterface) {
-	bonus := apiRoute.Group("/bonus")
+	bonus := apiRoute.Group("/bonus", AuthMiddleware)
 	controller := controllers.NewBonusControllers(store, b)
 
-	bonus.POST("", controller.Create)
-	bonus.POST(":id", controller.GetAward)
+	bonus.POST("/:id", controller.GetAward)
 	bonus.GET("", controller.GetAll)
-	bonus.DELETE(":id", controller.Delete)
 }

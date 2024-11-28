@@ -15,6 +15,6 @@ func AddYear() string {
 }
 
 func Timestamp() string {
-	t := time.Now().Format(time.RFC3339)
+	t := time.Now().Format(time.DateOnly)
 	return t
 }
