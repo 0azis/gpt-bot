@@ -17,10 +17,14 @@ type Store struct {
 	Bonus        repository.BonusRepository
 	Subscription repository.SubscriptionRepository
 	Limits       repository.LimitsRepository
+	Referral     repository.ReferralRepository
 }
 
 func New(cfg config.Database) (Store, error) {
 	db, err := sqlx.Connect("mysql", cfg.Addr())
+	if err != nil {
+		return Store{}, err
+	}
 
 	db.SetMaxIdleConns(150)
 	db.SetMaxOpenConns(150)
@@ -33,7 +37,8 @@ func New(cfg config.Database) (Store, error) {
 		Bonus:        bonusDb{db},
 		Subscription: subscriptionDb{db},
 		Limits:       limitsDb{db},
+		Referral:     referralDb{db},
 	}
 
-	return store, err
+	return store, nil
 }

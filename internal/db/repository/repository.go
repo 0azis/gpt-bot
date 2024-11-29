@@ -27,6 +27,7 @@ type SubscriptionRepository interface {
 	EndTime() error
 	Update(userID int, name string, end string) error
 	DailyDiamonds(name string) (int, error)
+	GetSubscription(userID int) (string, error)
 }
 
 type LimitsRepository interface {
@@ -34,6 +35,7 @@ type LimitsRepository interface {
 	Update(newLimits domain.Limits) error
 	Reduce(userID int, model string) error
 	GetLimitsByModel(userID int, model string) (int, error)
+	GetByUser(userID int) (domain.Limits, error)
 }
 
 type MessageRepository interface {
@@ -67,4 +69,13 @@ type BonusRepository interface {
 	// admin
 	DailyBonuses() (int, error)
 	AllBonuses() (int, error)
+}
+
+type ReferralRepository interface {
+	Create() error
+	GetOne(code string) (int, error)
+	GetAll() ([]domain.Referral, error)
+	Delete(id int) error
+	AddUser(userID, refId int) error
+	CountUsers(id int) (int, error)
 }

@@ -72,6 +72,8 @@ func New(cfg config.Telegram, store db.Store) (BotInterface, error) {
 		bonusStateAskChannel: tgBot.callbackChannelName,
 		bonusStateAskAward:   tgBot.callbackBonusAward,
 		bonusStateDelete:     tgBot.callbackChannelName,
+		// referral
+		referralStateDelete: tgBot.callbackReferralId,
 
 		// default
 		// stateDefault: tgBot.stateDefault,
@@ -98,6 +100,11 @@ func (tb tgBot) InitHandlers() {
 	// admin
 	tb.b.RegisterHandler(bot.HandlerTypeMessageText, "/admin", bot.MatchTypeContains, tb.adminHandler)
 	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "btn_", bot.MatchTypePrefix, tb.callbackHandler)
+
+	// other
+	tb.b.RegisterHandler(bot.HandlerTypeMessageText, "/app", bot.MatchTypeExact, tb.appHandler)
+	tb.b.RegisterHandler(bot.HandlerTypeMessageText, "/menu", bot.MatchTypeExact, tb.menuHandler)
+
 }
 
 func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -143,43 +150,59 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 	msgSlice := strings.Split(update.Message.Text, " ")
 	if len(msgSlice) == 2 {
 		refCode := &msgSlice[1]
-		id, err := tb.store.User.IsUserReferred(user.ID, *refCode)
-		if err != nil {
-			tb.informUser(ctx, int64(user.ID), internalError)
-			return
-		}
-		if id != 0 {
-			tb.informUser(ctx, int64(user.ID), userAlreadyReferred)
-			return
-		}
+		if len(*refCode) == utils.UserRefCode {
+			id, err := tb.store.User.IsUserReferred(user.ID, *refCode)
+			if err != nil {
+				slog.Error(err.Error())
+				tb.informUser(ctx, int64(user.ID), internalError)
+				return
+			}
+			if id != 0 {
+				tb.informUser(ctx, int64(user.ID), userAlreadyReferred)
+				return
+			}
 
-		ownerID, err := tb.store.User.OwnerOfReferralCode(*refCode)
-		if errors.Is(err, sql.ErrNoRows) {
-			tb.informUser(ctx, int64(user.ID), referralInvalid)
-			return
-		}
-		if ownerID == user.ID {
-			tb.informUser(ctx, int64(user.ID), referralSameUser)
-			return
-		}
-		if err != nil {
-			slog.Error(err.Error())
-			tb.informUser(ctx, int64(user.ID), internalError)
-			return
-		}
+			ownerID, err := tb.store.User.OwnerOfReferralCode(*refCode)
+			if errors.Is(err, sql.ErrNoRows) {
+				tb.informUser(ctx, int64(user.ID), referralInvalid)
+				return
+			}
+			if ownerID == user.ID {
+				tb.informUser(ctx, int64(user.ID), referralSameUser)
+				return
+			}
+			if err != nil {
+				slog.Error(err.Error())
+				tb.informUser(ctx, int64(user.ID), internalError)
+				return
+			}
 
-		award := domain.ReferralAward
-		err = tb.store.User.RaiseBalance(ownerID, award)
-		if err != nil {
-			slog.Error(err.Error())
-			tb.informUser(ctx, int64(user.ID), internalError)
-			return
+			award := domain.ReferralAward
+			err = tb.store.User.RaiseBalance(ownerID, award)
+			if err != nil {
+				slog.Error(err.Error())
+				tb.informUser(ctx, int64(user.ID), internalError)
+				return
+			}
+			err = tb.store.User.SetReferredBy(user.ID, *refCode)
+			if err != nil {
+				slog.Error(err.Error())
+				tb.informUser(ctx, int64(user.ID), internalError)
+				return
+			}
 		}
-		err = tb.store.User.SetReferredBy(user.ID, *refCode)
-		if err != nil {
-			slog.Error(err.Error())
-			tb.informUser(ctx, int64(user.ID), internalError)
-			return
+		if len(*refCode) == utils.AdRefCode {
+			refID, err := tb.store.Referral.GetOne(*refCode)
+			if errors.Is(err, sql.ErrNoRows) {
+				tb.informUser(ctx, int64(user.ID), referralInvalid)
+				return
+			}
+			if err != nil {
+				slog.Error(err.Error())
+				tb.informUser(ctx, int64(user.ID), internalError)
+				return
+			}
+			tb.store.Referral.AddUser(user.ID, refID)
 		}
 	}
 
@@ -199,8 +222,58 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 	}
 
 	b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID: update.Message.Chat.ID,
-		Text:   fmt.Sprintf("Hello!, %s", update.Message.From.Username),
+		ChatID:    update.Message.Chat.ID,
+		Text:      "Привет! 👋\n\n🥳 Добро пожаловать в WEBAI App! Вы можете воспользоваться любимыми нейросетями в удобном формате мини-приложения.\n\nКоманды:\n/help - техническая поддержка\n/menu - управление ботом\n/app - мини-приложение\n/start - перезапустить бота",
+		ParseMode: models.ParseModeHTML,
+	})
+}
+
+func (tb tgBot) appHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	token := utils.NewToken()
+	token.SetUserID(int(update.Message.From.ID))
+	err := token.SignJWT()
+	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, userCreationError)
+		return
+	}
+
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "Открыть WebAI", WebApp: &models.WebAppInfo{
+					URL: tb.telegram.GetWebAppUrl() + "?token=" + token.GetStrToken(),
+				}},
+			},
+		},
+	}
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:      update.Message.From.ID,
+		Text:        "Нажмите на кнопку ниже для открытия мини-приложения.",
+		ReplyMarkup: kb,
+	})
+}
+
+func (tb tgBot) menuHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	userID := int(update.Message.From.ID)
+	subscriptionName, err := tb.store.Subscription.GetSubscription(userID)
+	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, int64(userID), internalError)
+		return
+
+	}
+	limits, err := tb.store.Limits.GetByUser(userID)
+	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, int64(userID), internalError)
+		return
+	}
+
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:    userID,
+		Text:      fmt.Sprintf("ID: %d\nПодписка: <i>%s</i>\n\n<pre><code><b>Лимиты запросов:</b>\nGPT o1: %d\nGPT o1-mini: %d\nGPT 4o: %d\nGPT 4o-mini: %d\nDALL-E 3: %d\nRunware: %d</code></pre>\n\n<i>Лимиты для пользователей обновляются каждый день</i>", userID, subscriptionName, limits.O1Preview, limits.O1Mini, limits.Gpt4o, limits.Gpt4oMini, limits.Dalle3, limits.Runware),
+		ParseMode: models.ParseModeHTML,
 	})
 }
 
@@ -374,12 +447,16 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 			case diamondStateAskUserID:
 				id, err := strconv.Atoi(update.Message.Text)
 				if err != nil {
+					tb.informUser(ctx, update.Message.From.ID, incorrectData)
+					return
 				}
 				diamondsScheme.userID = id
 				tb.f.Transition(update.Message.From.ID, diamondStateAskDiamondsAmount, update.Message.Chat.ID)
 			case diamondStateAskDiamondsAmount:
 				amount, err := strconv.Atoi(update.Message.Text)
 				if err != nil {
+					tb.informUser(ctx, update.Message.From.ID, incorrectData)
+					return
 				}
 				diamondsScheme.amount = amount
 				tb.giveDiamonds(diamondsScheme, update.Message)
@@ -389,6 +466,8 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 			case subscriptionStateAskUserID:
 				id, err := strconv.Atoi(update.Message.Text)
 				if err != nil {
+					tb.informUser(ctx, update.Message.From.ID, incorrectData)
+					return
 				}
 				subscriptionScheme.userID = id
 				tb.f.Transition(update.Message.From.ID, subscriptionStateAskName, update.Message.Chat.ID)
@@ -403,7 +482,8 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 			case bonusStateAskAward:
 				award, err := strconv.Atoi(update.Message.Text)
 				if err != nil {
-
+					tb.informUser(ctx, update.Message.From.ID, incorrectData)
+					return
 				}
 				bonusScheme.award = award
 				tb.createBonus(bonusScheme, update.Message)
@@ -412,6 +492,15 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 			case bonusStateDelete:
 				bonusScheme.channel_name = update.Message.Text
 				tb.deleteBonus(bonusScheme, update.Message)
+				tb.f.Transition(update.Message.From.ID, stateDefault, update.Message.Chat.ID)
+			// referral
+			case referralStateDelete:
+				refID, err := strconv.Atoi(update.Message.Text)
+				if err != nil {
+					tb.informUser(ctx, update.Message.From.ID, incorrectData)
+					return
+				}
+				tb.deteleReferral(refID, update.Message)
 				tb.f.Transition(update.Message.From.ID, stateDefault, update.Message.Chat.ID)
 			}
 		}

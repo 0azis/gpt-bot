@@ -39,3 +39,9 @@ func (l limitsDb) GetLimitsByModel(userID int, model string) (int, error) {
 	err := l.db.Get(&modelLimits, query)
 	return modelLimits, err
 }
+
+func (l limitsDb) GetByUser(userID int) (domain.Limits, error) {
+	var limits domain.Limits
+	err := l.db.Get(&limits, `select * from limits where user_id = ?`, userID)
+	return limits, err
+}
