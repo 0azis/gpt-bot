@@ -12,7 +12,7 @@ type userDb struct {
 }
 
 func (u userDb) Create(user domain.User) error {
-	refCode := utils.GenerateReferralCode()
+	refCode := utils.GenerateReferralCode(utils.UserRefCode)
 
 	rows, err := u.db.Query(`insert into users (id, avatar, referral_code) values (?, ?, ?) on duplicate key update avatar = avatar`, user.ID, user.Avatar, refCode)
 	defer rows.Close()

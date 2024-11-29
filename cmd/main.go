@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"gpt-bot/config"
 	"gpt-bot/cron"
 	"gpt-bot/internal/api"
@@ -32,7 +31,7 @@ func main() {
 	// init database
 	store, err := db.New(config.Database)
 	if err != nil {
-		fmt.Println(config.Database.Addr())
+		slog.Error(err.Error())
 		slog.Error("database connection was failed")
 		return
 	}

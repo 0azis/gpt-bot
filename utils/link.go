@@ -6,6 +6,11 @@ import (
 	"unsafe"
 )
 
+type RefCodeType int
+
+const UserRefCode = 5
+const AdRefCode = 10
+
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const (
 	letterIdxBits = 6                    // 6 bits to represent a letter index
@@ -15,8 +20,7 @@ const (
 
 var src = rand.NewSource(time.Now().UnixNano())
 
-func GenerateReferralCode() string {
-	n := 5
+func GenerateReferralCode(n int) string {
 	b := make([]byte, n)
 
 	for i, cache, remain := n-1, src.Int63(), letterIdxMask; i >= 0; {

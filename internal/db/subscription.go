@@ -49,3 +49,9 @@ func (s subscriptionDb) DailyDiamonds(name string) (int, error) {
 	err := s.db.Get(&diamonds, `select diamonds from subscriptions_info where name = ?`, name)
 	return diamonds, err
 }
+
+func (s subscriptionDb) GetSubscription(userID int) (string, error) {
+	var name string
+	err := s.db.Get(&name, `select name from subscriptions where user_id = ?`, userID)
+	return name, err
+}

@@ -45,13 +45,13 @@ type Subscription struct {
 }
 
 type Limits struct {
-	UserID    int `json:"-"`
-	O1Preview int `json:"o1-preview" db:"o1-preview"`
-	Gpt4o     int `json:"gpt-4o" db:"gpt-4o"`
-	O1Mini    int `json:"o1-mini" db:"o1-mini"`
-	Gpt4oMini int `json:"gpt-4o-mini" db:"gpt-4o-mini"`
+	UserID    int `json:"-" db:"user_id"`
+	O1Preview int `json:"o1-preview" db:"o1_preview"`
+	Gpt4o     int `json:"gpt-4o" db:"gpt_4o"`
+	O1Mini    int `json:"o1-mini" db:"o1_mini"`
+	Gpt4oMini int `json:"gpt-4o-mini" db:"gpt_4o_mini"`
 	Runware   int `json:"runware" db:"runware"`
-	Dalle3    int `json:"dall-e-3" db:"dall-e-3"`
+	Dalle3    int `json:"dall-e-3" db:"dall_e_3"`
 }
 
 func NewLimits(userID int, subscription string) Limits {
@@ -238,4 +238,16 @@ type Channel struct {
 	Name   string `json:"name" db:"channel_name"`
 	Avatar string `json:"avatar"`
 	Link   string `json:"link"`
+}
+
+const baseUrl = "https://t.me/webai_robot?start="
+
+type Referral struct {
+	ID   int    `db:"id"`
+	Code string `db:"code"`
+	Link string
+}
+
+func (r *Referral) SetLink() {
+	r.Link = baseUrl + r.Code
 }
