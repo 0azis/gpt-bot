@@ -1,6 +1,7 @@
 package tgbot
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -104,6 +105,7 @@ func (tb tgBot) InitHandlers() {
 	// other
 	tb.b.RegisterHandler(bot.HandlerTypeMessageText, "/app", bot.MatchTypeExact, tb.appHandler)
 	tb.b.RegisterHandler(bot.HandlerTypeMessageText, "/menu", bot.MatchTypeExact, tb.menuHandler)
+	tb.b.RegisterHandler(bot.HandlerTypeMessageText, "/help", bot.MatchTypeExact, tb.helpHandler)
 
 }
 
@@ -112,13 +114,13 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 	user.ID = int(update.Message.From.ID)
 	user.Avatar = tb.getTelegramAvatar(ctx, int64(user.ID))
 
-	err := tb.store.User.Create(user)
-	if err != nil {
-		slog.Error(err.Error())
-		tb.informUser(ctx, int64(user.ID), userCreationError)
-		return
-	}
-	err = tb.store.Subscription.InitStandard(user.ID)
+	// err := tb.store.User.Create(user)
+	// if err != nil {
+	// 	slog.Error(err.Error())
+	// 	tb.informUser(ctx, int64(user.ID), userCreationError)
+	// 	return
+	// }
+	err := tb.store.Subscription.InitStandard(user.ID)
 	if err != nil {
 		slog.Error(err.Error())
 		tb.informUser(ctx, int64(user.ID), userCreationError)
@@ -221,10 +223,30 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 		tb.informUser(ctx, update.Message.From.ID, miniAppError)
 	}
 
-	b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:    update.Message.Chat.ID,
-		Text:      "Привет! 👋\n\n🥳 Добро пожаловать в WEBAI App! Вы можете воспользоваться любимыми нейросетями в удобном формате мини-приложения.\n\nКоманды:\n/help - техническая поддержка\n/menu - управление ботом\n/app - мини-приложение\n/start - перезапустить бота",
-		ParseMode: models.ParseModeHTML,
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "Открыть приложение", WebApp: &models.WebAppInfo{
+					URL: tb.telegram.GetWebAppUrl() + "?token=" + token.GetStrToken(),
+				}},
+			},
+		},
+	}
+
+	file, err := os.ReadFile("../assets/preview.jpg")
+	if err != nil {
+		slog.Error(err.Error())
+	}
+
+	b.SendPhoto(ctx, &bot.SendPhotoParams{
+		ChatID: update.Message.Chat.ID,
+		Photo: &models.InputFileUpload{
+			Filename: "preview.png",
+			Data:     bytes.NewReader(file),
+		},
+		Caption:     "<b>👋 Добро пожаловать в оригинальное приложение для использования нейросетей!</b>\n\nБесплатные нейросети с ежедневным лимитом:ChatGPT + Runware.\n\n<i>Для запуска приложения нажмите кнопку ниже...</i>",
+		ParseMode:   models.ParseModeHTML,
+		ReplyMarkup: kb,
 	})
 }
 
@@ -274,6 +296,22 @@ func (tb tgBot) menuHandler(ctx context.Context, b *bot.Bot, update *models.Upda
 		ChatID:    userID,
 		Text:      fmt.Sprintf("ID: %d\nПодписка: <i>%s</i>\n\n<pre><code><b>Лимиты запросов:</b>\nGPT o1: %d\nGPT o1-mini: %d\nGPT 4o: %d\nGPT 4o-mini: %d\nDALL-E 3: %d\nRunware: %d</code></pre>\n\n<i>Лимиты для пользователей обновляются каждый день</i>", userID, subscriptionName, limits.O1Preview, limits.O1Mini, limits.Gpt4o, limits.Gpt4oMini, limits.Dalle3, limits.Runware),
 		ParseMode: models.ParseModeHTML,
+	})
+}
+
+func (tb tgBot) helpHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "Support", URL: "https://t.me/WebAiSupport"},
+			},
+		},
+	}
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:      update.Message.From.ID,
+		Text:        "<b>Возникла проблема? Есть предложения по улучшению проекта? Вопрос сотрудничества? Техническая поддержка ответит на все вопросы 😉.</b>\n\n🛠 Support - @WebAiSupport",
+		ParseMode:   models.ParseModeHTML,
+		ReplyMarkup: kb,
 	})
 }
 
