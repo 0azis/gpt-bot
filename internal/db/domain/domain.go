@@ -26,6 +26,7 @@ type User struct {
 	Limits       Limits       `json:"limits"`
 	Avatar       string       `json:"avatar"`
 	Balance      int          `json:"balance"`
+	LanguageCode string       `json:"language_code"`
 	ReferralCode *string      `json:"referralCode"`
 	ReferredBy   *string      `json:"referredBy"`
 }
@@ -53,6 +54,8 @@ type Limits struct {
 	Runware   int `json:"runware" db:"runware"`
 	Dalle3    int `json:"dall-e-3" db:"dall_e_3"`
 }
+
+type LimitsMap map[string]int
 
 func NewLimits(userID int, subscription string) Limits {
 	if subscription == SubscriptionStandard {
@@ -223,10 +226,14 @@ const ReferralAward = 10
 
 type Bonus struct {
 	ID        int     `json:"id" db:"id"`
+	Name      string  `json:"-" db:"name"`
 	Channel   Channel `json:"channel"`
-	Award     int     `json:"award" db:"award"`
+	Award     int     `json:"award"`
 	Completed bool    `json:"completed"`
 	Awarded   bool    `json:"awarded"`
+	Status    bool    `json:"-" db:"status"`
+	MaxUsers  int     `json:"-" db:"max_users"`
+	CreatedAt string  `json:"-" db:"created_at"`
 }
 
 func (b Bonus) Valid() bool {

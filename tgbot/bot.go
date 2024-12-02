@@ -100,6 +100,8 @@ func (tb tgBot) InitHandlers() {
 	// admin
 	tb.b.RegisterHandler(bot.HandlerTypeMessageText, "/admin", bot.MatchTypeContains, tb.adminHandler)
 	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "btn_", bot.MatchTypePrefix, tb.callbackHandler)
+	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "id@", bot.MatchTypePrefix, tb.bonusesInfo)
+	// tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "mini_app", bot.MatchTypePrefix, tb.cb)
 
 	// other
 	tb.b.RegisterHandler(bot.HandlerTypeMessageText, "/app", bot.MatchTypeExact, tb.appHandler)
@@ -111,6 +113,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 	var user domain.User
 	user.ID = int(update.Message.From.ID)
 	user.Avatar = tb.getTelegramAvatar(ctx, int64(user.ID))
+	user.LanguageCode = update.Message.From.LanguageCode
 
 	err := tb.store.User.Create(user)
 	if err != nil {
@@ -241,7 +244,7 @@ func (tb tgBot) appHandler(ctx context.Context, b *bot.Bot, update *models.Updat
 	kb := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
-				{Text: "Открыть WebAI", WebApp: &models.WebAppInfo{
+				{Text: "Открыть WebAI", CallbackData: "mini_app", WebApp: &models.WebAppInfo{
 					URL: tb.telegram.GetWebAppUrl() + "?token=" + token.GetStrToken(),
 				}},
 			},
@@ -253,6 +256,19 @@ func (tb tgBot) appHandler(ctx context.Context, b *bot.Bot, update *models.Updat
 		ReplyMarkup: kb,
 	})
 }
+
+// func (tb tgBot) cb(ctx context.Context, b *bot.Bot, update *models.Update) {
+// 	fmt.Println("HELLO")
+
+// 	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+// 		CallbackQueryID: update.CallbackQuery.ID,
+// 	})
+
+// 	// b.AnswerWebAppQuery(ctx, &bot.AnswerWebAppQueryParams{
+// 	// 	Result: models.
+// 	// })
+// 	tb.store.Stat.Count()
+// }
 
 func (tb tgBot) menuHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	userID := int(update.Message.From.ID)
@@ -505,4 +521,11 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 			}
 		}
 	}
+}
+
+func (tb tgBot) IsBotBanned(chatID int64) bool {
+	_, err := tb.b.GetChat(context.Background(), &bot.GetChatParams{
+		ChatID: chatID,
+	})
+	return err != nil
 }

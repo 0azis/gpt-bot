@@ -22,20 +22,141 @@ func (m messageDb) GetByChat(userID, chatID int) ([]domain.Message, error) {
 	return messages, err
 }
 
-func (m messageDb) RequestsDaily() (int, error) {
-	var dailyCount int
-	err := m.db.Get(&dailyCount, `select count(*) from messages where date(created_at) >= curdate() and role = "assistant"`)
-	return dailyCount, err
+func (m messageDb) RequestsDaily() (domain.LimitsMap, error) {
+	modelsCount := domain.LimitsMap{}
+	rows, err := m.db.Query(`select chats.model from messages join chats on chats.id = messages.chat_id where date(created_at) >= curdate() and role = "assistant"`)
+	if err != nil {
+		return modelsCount, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var model string
+		err = rows.Scan(&model)
+		modelsCount[model] += 1
+	}
+
+	return modelsCount, err
 }
 
-func (m messageDb) RequestsWeekly() (int, error) {
-	var weeklyCount int
-	err := m.db.Get(&weeklyCount, `select count(*) from messages where date(created_at) >= date_sub(curdate(), interval dayofweek(curdate())-1 day) and role = "assistant"`)
-	return weeklyCount, err
+func (m messageDb) RequestsWeekly() (domain.LimitsMap, error) {
+	modelsCount := domain.LimitsMap{}
+	rows, err := m.db.Query(`select count(*) from messages where date(created_at) >= date_sub(curdate(), interval dayofweek(curdate())-1 day) and role = "assistant"`)
+	if err != nil {
+		return modelsCount, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var model string
+		err = rows.Scan(&model)
+		modelsCount[model] += 1
+	}
+	return modelsCount, err
 }
 
-func (m messageDb) RequestsMontly() (int, error) {
-	var montlyCount int
-	err := m.db.Get(&montlyCount, `select count(*) from messages where date(created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day) and role = "assistant"`)
-	return montlyCount, err
+func (m messageDb) RequestsMontly() (domain.LimitsMap, error) {
+	modelsCount := domain.LimitsMap{}
+	rows, err := m.db.Query(`select count(*) from messages where date(created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day) and role = "assistant"`)
+	if err != nil {
+		return modelsCount, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var model string
+		err = rows.Scan(&model)
+		modelsCount[model] += 1
+	}
+	return modelsCount, err
+}
+
+// func (m messageDb) UsersDaily() (int, error) {
+// 	var usersCount int
+// 	err := m.db.Get(&usersCount, `select count(distinct chats.user_id) from chats join messages on messages.chat_id = chats.id where role = "user" and date(messages.created_at) >= curdate()`)
+
+// 	return usersCount, err
+// }
+
+// func (m messageDb) UsersWeekly() (int, error) {
+// 	var usersCount int
+// 	err := m.db.Get(&usersCount, `select count(distinct chats.user_id) from chats join messages on messages.chat_id = chats.id where role = "user" and date(messages.created_at) >= date_sub(curdate(), interval dayofweek(curdate())-1 day)`)
+
+// 	return usersCount, err
+// }
+
+// func (m messageDb) UsersMonthly() (int, error) {
+// 	var usersCount int
+// 	err := m.db.Get(&usersCount, `select count(distinct chats.user_id) from chats join messages on messages.chat_id = chats.id where role = "user" and date(messages.created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day)`)
+
+// 	return usersCount, err
+// }
+
+func (m messageDb) UsersDailyTwice() (int, error) {
+	var usersCount int
+	err := m.db.Get(&usersCount, `select count(user_id) from (select c.user_id from chats c join messages m on c.id = m.chat_id where date(m.created_at) >= curdate() group by c.user_id having count (distinct c.id) > 1)as qq`)
+	return usersCount, err
+}
+
+func (m messageDb) UsersWeeklyTwice() (int, error) {
+	var usersCount int
+	err := m.db.Get(&usersCount, `select count(user_id) from (select c.user_id from chats c join messages m on c.id = m.chat_id where date(m.created_at) >= date_sub(curdate(), interval dayofweek(curdate())-1 day) group by c.user_id having count (distinct c.id) > 1)as qq`)
+	return usersCount, err
+}
+
+func (m messageDb) UsersMonthlyTwice() (int, error) {
+	var usersCount int
+	err := m.db.Get(&usersCount, `select count(user_id) from (select c.user_id from chats c join messages m on c.id = m.chat_id where date(m.created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day) group by c.user_id having count (distinct c.id) > 1)as qq`)
+	return usersCount, err
+}
+
+func (m messageDb) MessagesDaily() (int, error) {
+	var messagesCount int
+	err := m.db.Get(&messagesCount, `select count(*) from messages where date(created_at) >= curdate() and role = "user"`)
+	return messagesCount, err
+}
+
+func (m messageDb) MessagesWeekly() (int, error) {
+	var messagesCount int
+	err := m.db.Get(&messagesCount, `select count(*) from messages where date(created_at) >= date_sub(curdate(), interval dayofweek(curdate())-1 day) and role = "user"`)
+	return messagesCount, err
+}
+
+func (m messageDb) MessagesMonthly() (int, error) {
+	var messagesCount int
+	err := m.db.Get(&messagesCount, `select count(*) from messages where date(created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day)and role = "user"`)
+	return messagesCount, err
+}
+
+func (m messageDb) MessagesAll() (int, error) {
+	var messagesCount int
+	err := m.db.Get(&messagesCount, `select count(*) from messages where role = "user"`)
+	return messagesCount, err
+}
+
+func (m messageDb) RequestsByUser(userID int) (domain.LimitsMap, error) {
+	modelsCount := domain.LimitsMap{}
+	rows, err := m.db.Query(`select chats.model from messages join chats on chats.id = messages.chat_id where role = "user" and chats.user_id = ?`, userID)
+	if err != nil {
+		return modelsCount, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var model string
+		err = rows.Scan(&model)
+		modelsCount[model] += 1
+	}
+
+	return modelsCount, err
+}
+
+func (m messageDb) LastMessageUser(userID int) (string, error) {
+	var time []string
+	err := m.db.Select(&time, `select created_at from messages join chats on chats.id = messages.chat_id where chats.user_id = ? order by created_at desc`, userID)
+	if err != nil {
+		return "", err
+	}
+
+	return time[0], nil
 }

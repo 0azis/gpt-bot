@@ -2,6 +2,7 @@ CREATE TABLE users (
     id bigint not null,
     avatar varchar(255) not null,
     balance int default 150 not null,
+    language_code varchar(255) not null,
     referral_code varchar(5),
     referred_by varchar(5),
     created_at timestamp default current_timestamp,
@@ -38,8 +39,12 @@ CREATE TABLE messages (
 
 CREATE TABLE bonuses (
     id smallint not null auto_increment,
-    channel_name varchar(255) not null unique,
-    award int not null,
+    name varchar(255),
+    max_users smallint,
+    channel_name varchar(255) unique,
+    award int,
+    status bool default 0,
+    created_at date default (current_date()),
     primary key (id)
 );
 
@@ -82,6 +87,7 @@ CREATE TABLE limits (
 
 CREATE TABLE referrals (
     id smallint not null auto_increment,
+    name varchar(255) not null,
     code varchar(255) not null,
     primary key (id)
 );
@@ -89,10 +95,15 @@ CREATE TABLE referrals (
 CREATE TABLE user_referrals (
     referral_id smallint not null,
     user_id bigint not null,
+    created_at date,
     foreign key (referral_id) references referrals (id) on delete cascade,
     foreign key (user_id) references users (id) on delete no action,
     primary key (referral_id, user_id)
 );
+
+CREATE TABLE stats (user_id bigint not null, clicked_at date);
+
+CREATE TABLE admins (user_id bigint not null);
 
 INSERT INTO
     subscriptions_info (name, diamonds)
@@ -108,3 +119,13 @@ INSERT INTO
     subscriptions_info (name, diamonds)
 values
     ('ultimate', 4000);
+
+INSERT INTO
+    admins (user_id)
+values
+    (7373317122);
+
+INSERT INTO
+    admins (user_id)
+values
+    (992956951);

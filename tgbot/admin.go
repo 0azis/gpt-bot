@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gpt-bot/internal/db/domain"
 	"log/slog"
+	"strconv"
 	"strings"
 
 	"github.com/0azis/bot"
@@ -42,6 +43,31 @@ const (
 	referralStateDelete fsm.StateID = "referral_delete"
 )
 
+const (
+	menu = "btn_menu"
+
+	statistics        = "btn_1"
+	statisticsDaily   = "btn_1_1"
+	statisticsWeekly  = "btn_1_2"
+	statisticsMonthly = "btn_1_3"
+	statisticsAll     = "btn_1_4"
+	statisticsBack    = "btn_1_5"
+
+	bonuses               = "btn_2"
+	bonusesInfo           = "btn_2_1"
+	bonusesCreate         = "btn_2_2"
+	bonusesBack           = "btn_2_3"
+	bonusesChaneChannel   = "btn_2_5"
+	bonusesChangeName     = "btn_2_6"
+	bonusesChangeMaxUsers = "btn_2_7"
+	bonusesDelete         = "btn_2_8"
+	bonuseID              = "id@"
+
+	users     = "btn_3"
+	referrals = "btn_4"
+	requests  = "btn_5"
+)
+
 type diamondsData struct {
 	userID int
 	amount int
@@ -67,50 +93,487 @@ var bonusScheme bonusData
 var referralScheme referralData
 
 func (tb tgBot) adminHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	msgSlice := strings.Split(update.Message.Text, " ")
-	if len(msgSlice) == 1 {
-		tb.informUser(ctx, update.Message.From.ID, adminPanelEnterPassword)
+	if !tb.store.Admin.CheckID(int(update.Message.From.ID)) {
+		tb.informUser(ctx, update.Message.From.ID, "bad id")
 		return
 	}
-	password := msgSlice[1]
-	if tb.telegram.GetAdminPassword() != password {
-		tb.informUser(ctx, update.Message.From.ID, adminPanelWrondPassword)
-		return
-	}
-
 	kb := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
-				{Text: "Статистика запросов", CallbackData: requestsStatistics},
-				{Text: "Статистика бонусов", CallbackData: bonusStatistics},
+				{Text: "Статистика", CallbackData: statistics},
+				{Text: "Бонусы", CallbackData: bonuses},
 			},
 			{
-				{Text: "Статистика пользователей", CallbackData: userStatistics},
+				{Text: "Пользователи", CallbackData: users},
+				{Text: "ССылки", CallbackData: referrals},
 			},
 			{
-				{Text: "Выдать подписку", CallbackData: giveSubscription},
-				{Text: "Выдать алмазы", CallbackData: giveDiamonds},
-			},
-			{
-				{Text: "Создать бонус", CallbackData: createBonus},
-				{Text: "Удалить бонус", CallbackData: deleteBonus},
-			},
-			{
-				{Text: "Создать реф. ссылку", CallbackData: createReferral},
-				{Text: "Удалить реф. ссылку", CallbackData: deleteReferral},
-			},
-			{
-				{Text: "Реф. ссылки", CallbackData: getReferrals},
+				{Text: "Запросы", CallbackData: requests},
 			},
 		},
 	}
 
+	premiumUsers, err := tb.store.User.PremiumUsersCount()
+	if err != nil {
+	}
+	statsDaily, err := tb.store.Stat.Daily()
+	if err != nil {
+	}
+	statsMonthly, err := tb.store.Stat.Monthly()
+	if err != nil {
+	}
+	statsAll, err := tb.store.Stat.All()
+	if err != nil {
+	}
+
+	bonusesDaily, err := tb.store.Bonus.DailyBonusesCount()
+	if err != nil {
+	}
+	bonusesMonthly, err := tb.store.Bonus.MonthlyBonusesCount()
+	if err != nil {
+	}
+	bonusesAll, err := tb.store.Bonus.AllBonuses()
+	if err != nil {
+	}
+
+	usersDaily, err := tb.store.User.DailyUsersCount()
+	if err != nil {
+	}
+	usersMonthly, err := tb.store.User.MonthlyUsersCount()
+	if err != nil {
+	}
+	usersAll, err := tb.store.User.AllUsersCount()
+	if err != nil {
+	}
+
+	usersReferredDaily, err := tb.store.User.DailyUsersReferred()
+	if err != nil {
+	}
+	usersReferredMonthly, err := tb.store.User.MonthlyUsersReferred()
+	if err != nil {
+	}
+	usersReferredAll, err := tb.store.User.AllUsersReferred()
+	if err != nil {
+	}
+
+	referralsUsersAll, err := tb.store.Referral.AllUsers()
+	if err != nil {
+	}
+	referralUsersDaily, err := tb.store.Referral.DailyUsers()
+	if err != nil {
+	}
+	referralUsersMonthly, err := tb.store.Referral.MonthlyUsers()
+	if err != nil {
+	}
+
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      update.Message.From.ID,
-		Text:        "<b>Добро пожаловать в админ панель!</b>",
+		Text:        fmt.Sprintf("👑 Премиум пользователей: %d\n\n🚀 Запусков: %d | %d | %d\n🎁 Выполнено бонусов: %d | %d | %d\n\n✅ Статистика пользователей\n|-Саморост: %d | %d | %d\n|-Приглашены: %d | %d | %d\n|-Реферальные ссылки: %d | %d | %d\n", premiumUsers, statsDaily, statsMonthly, statsAll, bonusesDaily, bonusesMonthly, bonusesAll, usersDaily, usersMonthly, usersAll, usersReferredDaily, usersReferredMonthly, usersReferredAll, referralUsersDaily, referralUsersMonthly, referralsUsersAll),
 		ReplyMarkup: kb,
 		ParseMode:   models.ParseModeHTML,
 	})
+}
+
+func (tb tgBot) adminMenu(ctx context.Context, b *bot.Bot, update *models.Update) {
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "Статистика", CallbackData: statistics},
+				{Text: "Бонусы", CallbackData: bonuses},
+			},
+			{
+				{Text: "Пользователи", CallbackData: users},
+				{Text: "ССылки", CallbackData: referrals},
+			},
+			{
+				{Text: "Запросы", CallbackData: requests},
+			},
+		},
+	}
+	premiumUsers, err := tb.store.User.PremiumUsersCount()
+	if err != nil {
+	}
+	statsDaily, err := tb.store.Stat.Daily()
+	if err != nil {
+	}
+	statsMonthly, err := tb.store.Stat.Monthly()
+	if err != nil {
+	}
+	statsAll, err := tb.store.Stat.All()
+	if err != nil {
+	}
+
+	bonusesDaily, err := tb.store.Bonus.DailyBonusesCount()
+	if err != nil {
+	}
+	bonusesMonthly, err := tb.store.Bonus.MonthlyBonusesCount()
+	if err != nil {
+	}
+	bonusesAll, err := tb.store.Bonus.AllBonuses()
+	if err != nil {
+	}
+
+	usersDaily, err := tb.store.User.DailyUsersCount()
+	if err != nil {
+	}
+	usersMonthly, err := tb.store.User.MonthlyUsersCount()
+	if err != nil {
+	}
+	usersAll, err := tb.store.User.AllUsersCount()
+	if err != nil {
+	}
+
+	usersReferredDaily, err := tb.store.User.DailyUsersReferred()
+	if err != nil {
+	}
+	usersReferredMonthly, err := tb.store.User.MonthlyUsersReferred()
+	if err != nil {
+	}
+	usersReferredAll, err := tb.store.User.AllUsersReferred()
+	if err != nil {
+	}
+
+	referralsUsersAll, err := tb.store.Referral.AllUsers()
+	if err != nil {
+	}
+	referralUsersDaily, err := tb.store.Referral.DailyUsers()
+	if err != nil {
+	}
+	referralUsersMonthly, err := tb.store.Referral.MonthlyUsers()
+	if err != nil {
+	}
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:      update.CallbackQuery.From.ID,
+		MessageID:   update.CallbackQuery.Message.Message.ID,
+		Text:        fmt.Sprintf("👑 Премиум пользователей: %d\n\n🚀 Запусков: %d | %d | %d\n🎁 Выполнено бонусов: %d | %d | %d\n\n✅ Статистика пользователей\n|-Саморост: %d | %d | %d\n|-Приглашены: %d | %d | %d\n|-Реферальные ссылки: %d | %d | %d\n", premiumUsers, statsDaily, statsMonthly, statsAll, bonusesDaily, bonusesMonthly, bonusesAll, usersDaily, usersMonthly, usersAll, usersReferredDaily, usersReferredMonthly, usersReferredAll, referralUsersDaily, referralUsersMonthly, referralsUsersAll),
+		ReplyMarkup: kb,
+	})
+}
+
+func (tb tgBot) statisticsMenu(ctx context.Context, b *bot.Bot, update *models.Update) {
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "За сегодня", CallbackData: statisticsDaily},
+				{Text: "За неделю", CallbackData: statisticsWeekly},
+				{Text: "За месяц", CallbackData: statisticsMonthly},
+			},
+			{
+				{Text: "За все время", CallbackData: statisticsAll},
+			},
+			{
+				{Text: "Назад", CallbackData: statisticsBack},
+				{Text: "В меню", CallbackData: menu},
+			},
+		},
+	}
+
+	b.EditMessageReplyMarkup(ctx, &bot.EditMessageReplyMarkupParams{
+		ChatID:      update.CallbackQuery.From.ID,
+		MessageID:   update.CallbackQuery.Message.Message.ID,
+		ReplyMarkup: kb,
+	})
+}
+
+func (tb tgBot) statisticsDaily(ctx context.Context, b *bot.Bot, update *models.Update) {
+	dailyUsersCount, err := tb.store.User.DailyUsersCount()
+	if err != nil {
+	}
+	messagesDaily, err := tb.store.Message.MessagesDaily()
+	if err != nil {
+	}
+	statsDaily, err := tb.store.Stat.Daily()
+	if err != nil {
+	}
+
+	dailyUsers, err := tb.store.User.DailyUsers()
+	if err != nil {
+	}
+
+	newDailyUsers := dailyUsersCount
+	newDailyUsersPercent := 100
+
+	activeUsersDaily, err := tb.store.User.ActiveUsersDaily()
+	if err != nil {
+		slog.Error(err.Error())
+	}
+	activeUsersDailyPercent := (activeUsersDaily / dailyUsersCount) * 100
+
+	deadUsersCount := 0
+	for _, user := range dailyUsers {
+		if !tb.IsBotBanned(int64(user.ID)) {
+			deadUsersCount += 1
+		}
+	}
+	deadUsersPercent := (deadUsersCount / dailyUsersCount) * 100
+
+	aliveUsers := dailyUsersCount - deadUsersCount
+	aliveUsersPercent := (aliveUsers / dailyUsersCount) * 100
+
+	premiumUsersCount, err := tb.store.User.PremiumUsersCount()
+	if err != nil {
+	}
+	premiumUsersPercent := (premiumUsersCount / dailyUsersCount) * 100
+
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    update.CallbackQuery.From.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+		Text: fmt.Sprintf("Статистика бота:\n|-Получено сообщений: %d\n|-Получено нажатий: %d\n\nСтатистика пользователей:\n|-Всего: %d\n|-Новых: %d (%d %%)\n|-Активные: %d (%d %%)\n|-Живые: %d (%d %%)\n|-Мертвые: %d (%d %%)\n|-Премиум: %d (%d %%)",
+			messagesDaily, statsDaily, dailyUsersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, activeUsersDailyPercent, aliveUsers, aliveUsersPercent, deadUsersCount, deadUsersPercent, premiumUsersCount, premiumUsersPercent),
+	})
+}
+
+func (tb tgBot) statisticsWeekly(ctx context.Context, b *bot.Bot, update *models.Update) {
+	usersCount, err := tb.store.User.WeeklyUsersCount()
+	if err != nil {
+	}
+	messagesDaily, err := tb.store.Message.MessagesWeekly()
+	if err != nil {
+	}
+	statsDaily, err := tb.store.Stat.All()
+	if err != nil {
+	}
+
+	users, err := tb.store.User.WeeklyUsers()
+	if err != nil {
+	}
+
+	newDailyUsers := usersCount
+	newDailyUsersPercent := 100
+
+	activeUsersDaily, err := tb.store.User.ActiveUsersWeekly()
+	if err != nil {
+		slog.Error(err.Error())
+	}
+	activeUsersDailyPercent := (activeUsersDaily / usersCount) * 100
+
+	deadUsersCount := 0
+	for _, user := range users {
+		if !tb.IsBotBanned(int64(user.ID)) {
+			deadUsersCount += 1
+		}
+	}
+	deadUsersPercent := (deadUsersCount / usersCount) * 100
+
+	aliveUsers := usersCount - deadUsersCount
+	aliveUsersPercent := (aliveUsers / usersCount) * 100
+
+	premiumUsersCount, err := tb.store.User.PremiumUsersCount()
+	if err != nil {
+	}
+	premiumUsersPercent := (premiumUsersCount / usersCount) * 100
+
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    update.CallbackQuery.From.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+		Text: fmt.Sprintf("Статистика бота:\n|-Получено сообщений: %d\n|-Получено нажатий: %d\n\nСтатистика пользователей:\n|-Всего: %d\n|-Новых: %d (%d %%)\n|-Активные: %d (%d %%)\n|-Живые: %d (%d %%)\n|-Мертвые: %d (%d %%)\n|-Премиум: %d (%d %%)",
+			messagesDaily, statsDaily, usersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, activeUsersDailyPercent, aliveUsers, aliveUsersPercent, deadUsersCount, deadUsersPercent, premiumUsersCount, premiumUsersPercent),
+	})
+}
+
+func (tb tgBot) statisticsMonthly(ctx context.Context, b *bot.Bot, update *models.Update) {
+	usersCount, err := tb.store.User.MonthlyUsersCount()
+	if err != nil {
+	}
+	messagesDaily, err := tb.store.Message.MessagesMonthly()
+	if err != nil {
+	}
+	statsDaily, err := tb.store.Stat.Monthly()
+	if err != nil {
+	}
+
+	users, err := tb.store.User.MonthlyUsers()
+	if err != nil {
+	}
+
+	newDailyUsers := usersCount
+	newDailyUsersPercent := 100
+
+	activeUsersDaily, err := tb.store.User.ActiveUsersMonthly()
+	if err != nil {
+		slog.Error(err.Error())
+	}
+	activeUsersDailyPercent := (activeUsersDaily / usersCount) * 100
+
+	deadUsersCount := 0
+	for _, user := range users {
+		if !tb.IsBotBanned(int64(user.ID)) {
+			deadUsersCount += 1
+		}
+	}
+	deadUsersPercent := (deadUsersCount / usersCount) * 100
+
+	aliveUsers := usersCount - deadUsersCount
+	aliveUsersPercent := (aliveUsers / usersCount) * 100
+
+	premiumUsersCount, err := tb.store.User.PremiumUsersCount()
+	if err != nil {
+	}
+	premiumUsersPercent := (premiumUsersCount / usersCount) * 100
+
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    update.CallbackQuery.From.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+		Text: fmt.Sprintf("Статистика бота:\n|-Получено сообщений: %d\n|-Получено нажатий: %d\n\nСтатистика пользователей:\n|-Всего: %d\n|-Новых: %d (%d %%)\n|-Активные: %d (%d %%)\n|-Живые: %d (%d %%)\n|-Мертвые: %d (%d %%)\n|-Премиум: %d (%d %%)",
+			messagesDaily, statsDaily, usersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, activeUsersDailyPercent, aliveUsers, aliveUsersPercent, deadUsersCount, deadUsersPercent, premiumUsersCount, premiumUsersPercent),
+	})
+}
+
+func (tb tgBot) statisticsAll(ctx context.Context, b *bot.Bot, update *models.Update) {
+	usersCount, err := tb.store.User.AllUsersCount()
+	if err != nil {
+	}
+	messagesDaily, err := tb.store.Message.MessagesAll()
+	if err != nil {
+	}
+	statsDaily, err := tb.store.Stat.All()
+	if err != nil {
+	}
+
+	users, err := tb.store.User.AllUsers()
+	if err != nil {
+	}
+
+	newDailyUsers := usersCount
+	newDailyUsersPercent := 100
+
+	activeUsersDaily, err := tb.store.User.ActiveUsersAll()
+	if err != nil {
+		slog.Error(err.Error())
+	}
+	activeUsersDailyPercent := (activeUsersDaily / usersCount) * 100
+
+	deadUsersCount := 0
+	for _, user := range users {
+		if !tb.IsBotBanned(int64(user.ID)) {
+			deadUsersCount += 1
+		}
+	}
+	deadUsersPercent := (deadUsersCount / usersCount) * 100
+
+	aliveUsers := usersCount - deadUsersCount
+	aliveUsersPercent := (aliveUsers / usersCount) * 100
+
+	premiumUsersCount, err := tb.store.User.PremiumUsersCount()
+	if err != nil {
+	}
+	premiumUsersPercent := (premiumUsersCount / usersCount) * 100
+
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    update.CallbackQuery.From.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+		Text: fmt.Sprintf("Статистика бота:\n|-Получено сообщений: %d\n|-Получено нажатий: %d\n\nСтатистика пользователей:\n|-Всего: %d\n|-Новых: %d (%d %%)\n|-Активные: %d (%d %%)\n|-Живые: %d (%d %%)\n|-Мертвые: %d (%d %%)\n|-Премиум: %d (%d %%)",
+			messagesDaily, statsDaily, usersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, activeUsersDailyPercent, aliveUsers, aliveUsersPercent, deadUsersCount, deadUsersPercent, premiumUsersCount, premiumUsersPercent),
+	})
+}
+
+func (tb tgBot) bonuses(ctx context.Context, b *bot.Bot, update *models.Update) {
+	bonuses, err := tb.store.Bonus.AllBonuses()
+	if err != nil {
+		slog.Error(err.Error())
+	}
+
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{},
+	}
+
+	for _, bonus := range bonuses {
+		bonusCompleted, err := tb.store.Bonus.BonusesByID(bonus.ID)
+		if err != nil {
+			slog.Error(err.Error())
+		}
+
+		statusText := "🟥"
+		if bonus.Status {
+			statusText = "🟩"
+		}
+
+		if bonus.Name == "" {
+			bonus.Name = " "
+		}
+
+		kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
+			{Text: fmt.Sprintf("#%d", bonus.ID), CallbackData: bonuseID + strconv.Itoa(bonus.ID)},
+			{Text: bonus.Name, CallbackData: "sdf"},
+			{Text: strconv.Itoa(bonusCompleted), CallbackData: "sgf"},
+			{Text: statusText, CallbackData: "sdfg"},
+		})
+	}
+
+	kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
+		{Text: "+ Добавить канал", CallbackData: bonusesCreate},
+	})
+	kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
+		{Text: "Назад", CallbackData: bonusesBack},
+		{Text: "В меню", CallbackData: menu},
+	})
+
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    update.CallbackQuery.From.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+		Text:      "- При нажатии на номер #номер - откроется меню управления и редактирование выбранного спонсора",
+	})
+	b.EditMessageReplyMarkup(ctx, &bot.EditMessageReplyMarkupParams{
+		ChatID:      update.CallbackQuery.From.ID,
+		MessageID:   update.CallbackQuery.Message.Message.ID,
+		ReplyMarkup: kb,
+	})
+
+}
+
+// func (tb tgBot) bonusesCreate(ctx context.Context, b *bot.Bot, update *models.Update) {
+
+// }
+func (tb tgBot) bonusesInfo(ctx context.Context, b *bot.Bot, update *models.Update) {
+	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+		ShowAlert:       false,
+	})
+	fmt.Println(update.CallbackQuery.Data)
+
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "Изменить канал", CallbackData: bonusesChaneChannel},
+			},
+			{
+				{Text: "Название", CallbackData: bonusesChangeName},
+				{Text: "Количество", CallbackData: bonusesChangeMaxUsers},
+			},
+			{
+				{Text: "Проверять", CallbackData: "sdf"},
+				{Text: "Не проверять", CallbackData: "sdf"},
+			},
+			{
+				{Text: "Удалить из списка", CallbackData: bonusesDelete},
+			},
+			{
+				{Text: "Назад", CallbackData: bonusesBack},
+				{Text: "В меню", CallbackData: menu},
+			},
+		},
+	}
+	idString := strings.Split(update.CallbackQuery.Data, "@")[1]
+	id, err := strconv.Atoi(idString)
+	if err != nil {
+
+	}
+	bonus, err := tb.store.Bonus.GetOne(id)
+	if err != nil {
+	}
+
+	tgChannel, err := tb.GetChannelInfo(bonus.Channel.Name)
+	if err != nil {
+	}
+	bonus.Channel = tgChannel
+
+	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:      update.CallbackQuery.From.ID,
+		MessageID:   update.CallbackQuery.Message.Message.ID,
+		Text:        fmt.Sprintf("|-Канал: @%s\n|-Название кнопки: %s\n|-Количество подписок: %d\n|-Создано: %s", bonus.Channel.Name, bonus.Name, bonus.MaxUsers, bonus.CreatedAt),
+		ReplyMarkup: kb,
+	})
+	fmt.Println(err)
 }
 
 func (tb tgBot) callbackHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -121,39 +584,57 @@ func (tb tgBot) callbackHandler(ctx context.Context, b *bot.Bot, update *models.
 
 	switch update.CallbackQuery.Data {
 	// statistics
-	case userStatistics:
-		tb.usersStatisticsCallback(ctx, b, update)
-	case requestsStatistics:
-		tb.requestsStatisticsCallback(ctx, b, update)
-	case bonusStatistics:
-		tb.bonusesStatisticsCallback(ctx, b, update)
-	// subscription
-	case giveSubscription:
-		tb.f.Transition(update.CallbackQuery.From.ID, subscriptionStateAskUserID, update.CallbackQuery.From.ID)
+	case statistics:
+		tb.statisticsMenu(ctx, b, update)
+	case statisticsDaily:
+		tb.statisticsDaily(ctx, b, update)
+		tb.statisticsMenu(ctx, b, update)
+	case statisticsWeekly:
+		tb.statisticsWeekly(ctx, b, update)
+		tb.statisticsMenu(ctx, b, update)
+	case statisticsMonthly:
+		tb.statisticsMonthly(ctx, b, update)
+		tb.statisticsMenu(ctx, b, update)
+	case statisticsAll:
+		tb.statisticsAll(ctx, b, update)
+		tb.statisticsMenu(ctx, b, update)
+	case statisticsBack:
+		tb.adminMenu(ctx, b, update)
+	case menu:
+		tb.adminMenu(ctx, b, update)
 
-	// diamonds
-	case giveDiamonds:
-		tb.f.Transition(update.CallbackQuery.From.ID, diamondStateAskUserID, update.CallbackQuery.From.ID)
+	case bonuses:
+		tb.bonuses(ctx, b, update)
 
-	// bonuses
-	case createBonus:
-		tb.f.Transition(update.CallbackQuery.From.ID, bonusStateAskChannel, update.CallbackQuery.From.ID)
-	case deleteBonus:
-		tb.f.Transition(update.CallbackQuery.From.ID, bonusStateDelete, update.CallbackQuery.From.ID)
+		// statistics
+		// case userStatistics:
+		// 	tb.usersStatisticsCallback(ctx, b, update)
+		// case requestsStatistics:
+		// 	tb.requestsStatisticsCallback(ctx, b, update)
+		// case bonusStatistics:
+		// 	tb.bonusesStatisticsCallback(ctx, b, update)
+		// // subscription
+		// case giveSubscription:
+		// 	tb.f.Transition(update.CallbackQuery.From.ID, subscriptionStateAskUserID, update.CallbackQuery.From.ID)
 
-	// referrals
-	case createReferral:
-		tb.createReferral(ctx, b, update)
-	case deleteReferral:
-		tb.f.Transition(update.CallbackQuery.From.ID, referralStateDelete, update.CallbackQuery.From.ID)
-	case getReferrals:
-		tb.getReferral(ctx, b, update.CallbackQuery.From.ID)
+		// // diamonds
+		// case giveDiamonds:
+		// 	tb.f.Transition(update.CallbackQuery.From.ID, diamondStateAskUserID, update.CallbackQuery.From.ID)
 
-	default:
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.CallbackQuery.From.ID,
-			Text:   "Ошибка при выборе функции",
-		})
+		// // bonuses
+		// case createBonus:
+		// 	tb.f.Transition(update.CallbackQuery.From.ID, bonusStateAskChannel, update.CallbackQuery.From.ID)
+		// case deleteBonus:
+		// 	tb.f.Transition(update.CallbackQuery.From.ID, bonusStateDelete, update.CallbackQuery.From.ID)
+
+		// // referrals
+		// case createReferral:
+		// 	tb.createReferral(ctx, b, update)
+		// case deleteReferral:
+		// 	tb.f.Transition(update.CallbackQuery.From.ID, referralStateDelete, update.CallbackQuery.From.ID)
+		// case getReferrals:
+		// 	tb.getReferral(ctx, b, update.CallbackQuery.From.ID)
+
 	}
 }
 
@@ -215,7 +696,7 @@ func (tb tgBot) callbackReferralId(f *fsm.FSM, args ...any) {
 }
 
 func (tb tgBot) usersStatisticsCallback(ctx context.Context, b *bot.Bot, update *models.Update) {
-	allUsers, err := tb.store.User.CountUsers()
+	allUsers, err := tb.store.User.AllUsersCount()
 	if err != nil {
 		slog.Error(err.Error())
 		tb.informUser(ctx, update.CallbackQuery.From.ID, adminUserStatistics)
@@ -269,7 +750,7 @@ func (tb tgBot) bonusesStatisticsCallback(ctx context.Context, b *bot.Bot, updat
 		tb.informUser(ctx, update.CallbackQuery.From.ID, adminRequestsStatistics)
 		return
 	}
-	dailyBonuses, err := tb.store.Bonus.DailyBonuses()
+	dailyBonuses, err := tb.store.Bonus.DailyBonusesCount()
 	if err != nil {
 		tb.informUser(ctx, update.CallbackQuery.From.ID, adminRequestsStatistics)
 	}
@@ -348,13 +829,13 @@ func (tb tgBot) giveDiamonds(diamondsScheme diamondsData, msg *models.Message) {
 }
 
 func (tb tgBot) createBonus(bonusScheme bonusData, msg *models.Message) {
-	bonus := domain.Bonus{
-		Channel: domain.Channel{
-			Name: bonusScheme.channel_name,
-		},
-		Award: bonusScheme.award,
-	}
-	err := tb.store.Bonus.Create(bonus)
+	// bonus := domain.Bonus{
+	// 	Channel: domain.Channel{
+	// 		Name: bonusScheme.channel_name,
+	// 	},
+	// 	Award: bonusScheme.award,
+	// }
+	err := tb.store.Bonus.Create(domain.Bonus{})
 	if err != nil {
 		slog.Error(err.Error())
 		tb.informUser(context.Background(), msg.From.ID, internalError)

@@ -14,7 +14,7 @@ type userDb struct {
 func (u userDb) Create(user domain.User) error {
 	refCode := utils.GenerateReferralCode(utils.UserRefCode)
 
-	rows, err := u.db.Query(`insert into users (id, avatar, referral_code) values (?, ?, ?) on duplicate key update avatar = avatar`, user.ID, user.Avatar, refCode)
+	rows, err := u.db.Query(`insert into users (id, avatar, language_code, referral_code) values (?, ?, ?, ?) on duplicate key update avatar = avatar`, user.ID, user.Avatar, user.LanguageCode, refCode)
 	defer rows.Close()
 	return err
 }
@@ -122,14 +122,110 @@ func (u userDb) FillBalance(userID, balance int) error {
 	return err
 }
 
-func (u userDb) CountUsers() (int, error) {
+func (u userDb) AllUsersCount() (int, error) {
 	var count int
 	err := u.db.Get(&count, `select count(id) from users`)
 	return count, err
 }
 
-func (u userDb) DailyUsers() (int, error) {
+func (u userDb) DailyUsersCount() (int, error) {
 	var dailyCount int
 	err := u.db.Get(&dailyCount, `select count(id) from users where created_at >= curdate()`)
 	return dailyCount, err
+}
+
+func (u userDb) WeeklyUsersCount() (int, error) {
+	var monthlyUsers int
+	err := u.db.Get(&monthlyUsers, `select count(id) from users where date(created_at) >= date_sub(curdate(), interval dayofweek(curdate())-1 day)`)
+	return monthlyUsers, err
+}
+
+func (u userDb) MonthlyUsersCount() (int, error) {
+	var monthlyUsers int
+	err := u.db.Get(&monthlyUsers, `select count(id) from users where date(created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day)`)
+	return monthlyUsers, err
+}
+
+func (u userDb) AllUsers() ([]domain.User, error) {
+	var users []domain.User
+	err := u.db.Get(&users, `select * from users`)
+	return users, err
+}
+
+func (u userDb) DailyUsers() ([]domain.User, error) {
+	var users []domain.User
+	err := u.db.Get(&users, `select * from users where date(created_at) >= curdate()`)
+	return users, err
+}
+
+func (u userDb) WeeklyUsers() ([]domain.User, error) {
+	var users []domain.User
+	err := u.db.Get(&users, `select * from users where date(created_at) >= date_sub(curdate(), interval dayofweek(curdate())-1 day)`)
+	return users, err
+}
+
+func (u userDb) MonthlyUsers() ([]domain.User, error) {
+	var users []domain.User
+	err := u.db.Get(&users, `select * from users where date(created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day)`)
+	return users, err
+}
+
+func (u userDb) AllUsersReferred() (int, error) {
+	var allUsersReferred int
+	err := u.db.Get(&allUsersReferred, `select count(*) from users where referred_by != ""`)
+	return allUsersReferred, err
+}
+
+func (u userDb) DailyUsersReferred() (int, error) {
+	var dailyUsersReferred int
+	err := u.db.Get(&dailyUsersReferred, `select count(*) from users where referred_by != "" and date(created_at) >= curdate()`)
+	return dailyUsersReferred, err
+}
+
+func (u userDb) WeeklyUsersReferred() (int, error) {
+	var dailyUsersReferred int
+	err := u.db.Get(&dailyUsersReferred, `select count(*) from users where referred_by != "" and date(created_at) >= date_sub(curdate(), interval dayofweek(curdate())-1 day)`)
+	return dailyUsersReferred, err
+}
+
+func (u userDb) MonthlyUsersReferred() (int, error) {
+	var dailyUsersReferred int
+	err := u.db.Get(&dailyUsersReferred, `select count(*) from users where referred_by != "" and date(created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day)`)
+	return dailyUsersReferred, err
+}
+
+func (u userDb) PremiumUsers() ([]domain.User, error) {
+	var premiumUsers []domain.User
+	err := u.db.Get(&premiumUsers, `select * from users join subscriptions on subscriptions.user_id = users.id where subscriptions.name = "advanced" or subscriptions.name = "ultimate"`)
+	return premiumUsers, err
+}
+
+func (u userDb) PremiumUsersCount() (int, error) {
+	var premiumUsers int
+	err := u.db.Get(&premiumUsers, `select count(*) from users join subscriptions on subscriptions.user_id = users.id where subscriptions.name = "advanced" or subscriptions.name = "ultimate"`)
+	return premiumUsers, err
+}
+
+func (u userDb) ActiveUsersAll() (int, error) {
+	var activeUsers int
+	err := u.db.Get(&activeUsers, `select count(distinct users.id) from users join chats on chats.user_id = users.id`)
+	return activeUsers, err
+}
+
+func (u userDb) ActiveUsersDaily() (int, error) {
+	var activeUsers int
+	err := u.db.Get(&activeUsers, `select count(distinct users.id) from users join chats on chats.user_id = users.id where date(created_at) >= curdate()`)
+	return activeUsers, err
+}
+
+func (u userDb) ActiveUsersWeekly() (int, error) {
+	var activeUsers int
+	err := u.db.Get(&activeUsers, `select count(distinct users.id) from users join chats on chats.user_id = users.id where date(created_at) >= date_sub(curdate(), interval dayofweek(curdate())-1 day)`)
+	return activeUsers, err
+}
+
+func (u userDb) ActiveUsersMonthly() (int, error) {
+	var activeUsers int
+	err := u.db.Get(&activeUsers, `select count(distinct users.id) from users join chats on chats.user_id = users.id where date(created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day)`)
+	return activeUsers, err
 }
