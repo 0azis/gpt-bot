@@ -1,6 +1,8 @@
 package db
 
 import (
+	"gpt-bot/utils"
+
 	"github.com/jmoiron/sqlx"
 )
 
@@ -39,7 +41,8 @@ func (s subscriptionDb) EndTime() error {
 }
 
 func (s subscriptionDb) Update(userID int, name string, end string) error {
-	rows, err := s.db.Query(`update subscriptions set name = ?, end = ? where user_id = ?`, name, end, userID)
+	time := utils.Timestamp()
+	rows, err := s.db.Query(`update subscriptions set name = ?, end = ?, start = ? where user_id = ?`, name, end, time, userID)
 	defer rows.Close()
 	return err
 }

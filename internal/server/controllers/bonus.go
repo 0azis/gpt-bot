@@ -31,13 +31,13 @@ func (b bonus) GetAll(c echo.Context) error {
 		return c.JSON(500, nil)
 	}
 	for _, bonus := range bonuses {
-		channel, err := b.tg.GetChannelInfo(bonus.Channel.Name)
+		channel, err := b.tg.GetChannelInfo(bonus.Channel.ID)
 		if err != nil {
 			slog.Error(err.Error())
 			return c.JSON(500, nil)
 		}
 		bonus.Channel = channel
-		if b.tg.IsUserMember(channel.Name, jwtUserID) {
+		if b.tg.IsUserMember(channel.ID, jwtUserID) {
 			bonus.Completed = true
 		}
 	}
@@ -63,7 +63,7 @@ func (b bonus) GetAward(c echo.Context) error {
 		return c.JSON(500, nil)
 	}
 
-	if !b.tg.IsUserMember(bonus.Channel.Name, jwtUserID) {
+	if !b.tg.IsUserMember(bonus.Channel.ID, jwtUserID) {
 		return c.JSON(400, nil)
 	}
 	if bonus.Awarded {

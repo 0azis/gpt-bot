@@ -47,6 +47,8 @@ func (l limitsDb) GetByUser(userID int) (domain.Limits, error) {
 }
 
 func (l limitsDb) AddLimits(userID int, model string, sum int) error {
-	_, err := l.db.Exec(`update limits set ? = ? where user_id = ?`, model, sum, userID)
+	q := fmt.Sprintf("update limits set %s = %d where user_id = %d", model, sum, userID)
+	fmt.Println(q)
+	_, err := l.db.Exec(q)
 	return err
 }

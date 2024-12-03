@@ -24,11 +24,13 @@ type User struct {
 	ID           int          `json:"id" db:"id"`
 	Subscription Subscription `json:"subscription"`
 	Limits       Limits       `json:"limits"`
-	Avatar       string       `json:"avatar"`
+	Avatar       *string      `json:"avatar"`
 	Balance      int          `json:"balance"`
 	LanguageCode string       `json:"language_code"`
 	ReferralCode *string      `json:"referralCode"`
 	ReferredBy   *string      `json:"referredBy"`
+	Username     string
+	CreatedAt    string `json:"createdAt"`
 }
 
 func (u User) IsModelValid(model string) bool {
@@ -231,20 +233,20 @@ type Bonus struct {
 	Award     int     `json:"award"`
 	Completed bool    `json:"completed"`
 	Awarded   bool    `json:"awarded"`
-	Status    bool    `json:"-" db:"status"`
+	Link      string  `json:"link" db:"link"`
+	Check     bool    `json:"-" db:"is_check"`
 	MaxUsers  int     `json:"-" db:"max_users"`
 	CreatedAt string  `json:"-" db:"created_at"`
 }
 
 func (b Bonus) Valid() bool {
-	return b.Award != 0 || b.Channel.Name != ""
+	return b.Award != 0 || b.Channel.ID != 0
 }
 
 type Channel struct {
+	ID     int    `json:"id"`
 	Title  string `json:"title"`
-	Name   string `json:"name" db:"channel_name"`
 	Avatar string `json:"avatar"`
-	Link   string `json:"link"`
 }
 
 const baseUrl = "https://t.me/webai_robot?start="

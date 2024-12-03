@@ -158,5 +158,9 @@ func (m messageDb) LastMessageUser(userID int) (string, error) {
 		return "", err
 	}
 
+	if len(time) == 0 {
+		return "", nil
+	}
+
 	return time[0], nil
 }

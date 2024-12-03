@@ -39,11 +39,12 @@ CREATE TABLE messages (
 
 CREATE TABLE bonuses (
     id smallint not null auto_increment,
-    name varchar(255),
-    max_users smallint,
-    channel_name varchar(255) unique,
-    award int,
-    status bool default 0,
+    name varchar(255) default (''),
+    channel_id bigint signed default 0,
+    max_users smallint default 0,
+    award int default 0,
+    link varchar(255) default (''),
+    is_check bool default 0,
     created_at date default (current_date()),
     primary key (id)
 );

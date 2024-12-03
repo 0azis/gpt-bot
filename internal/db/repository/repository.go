@@ -59,6 +59,7 @@ type LimitsRepository interface {
 	Reduce(userID int, model string) error
 	GetLimitsByModel(userID int, model string) (int, error)
 	GetByUser(userID int) (domain.Limits, error)
+	AddLimits(userID int, model string, sum int) error
 }
 
 type MessageRepository interface {
@@ -91,15 +92,21 @@ type ChatRepository interface {
 }
 
 type BonusRepository interface {
-	Create(bonus domain.Bonus) error
+	Create() error
 	GetAll(userID int) ([]*domain.Bonus, error)
 	GetOne(bonusID int) (domain.Bonus, error)
 	// GetCompleted(userID int) (completedBonuses []*domain.Bonus, err error)
 	// GetUncompleted(userID int) (uncompletedBonuses []*domain.Bonus, err error)
-	Delete(channel_name string) error
+	Delete(id int) error
 	MakeAwarded(bonusID, userID int) error
 	GetAward(bonusID, userID int) (int, error)
 	InitBonuses(userID int) error
+
+	UpdateName(id int, name string) error
+	UpdateChannel(id int, channelID int, link string) error
+	// UpdateAward(id int, award int) error
+	UpdateStatus(id int, status bool) error
+	UpdateMaxUsers(id int, maxUsers int) error
 
 	// admin
 	DailyBonusesCount() (int, error)
