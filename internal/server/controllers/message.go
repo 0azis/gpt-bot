@@ -120,14 +120,14 @@ func (m message) NewMessage(c echo.Context) error {
 		}
 	}
 
-	balance, err := m.store.User.GetBalance(jwtUserID)
-	if err != nil {
-		slog.Error(err.Error())
-		return c.JSON(500, nil)
-	}
-	if balance == 0 {
-		return c.JSON(403, nil)
-	}
+	// balance, err := m.store.User.GetBalance(jwtUserID)
+	// if err != nil {
+	// 	slog.Error(err.Error())
+	// 	return c.JSON(500, nil)
+	// }
+	// if balance == 0 {
+	// 	return c.JSON(403, nil)
+	// }
 
 	modelLimits, err := m.store.Limits.GetLimitsByModel(jwtUserID, model)
 	if err != nil {

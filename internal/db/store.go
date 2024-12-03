@@ -18,6 +18,8 @@ type Store struct {
 	Subscription repository.SubscriptionRepository
 	Limits       repository.LimitsRepository
 	Referral     repository.ReferralRepository
+	Stat         repository.StatRepository
+	Admin        repository.AdminRepository
 }
 
 func New(cfg config.Database) (Store, error) {
@@ -38,6 +40,8 @@ func New(cfg config.Database) (Store, error) {
 		Subscription: subscriptionDb{db},
 		Limits:       limitsDb{db},
 		Referral:     referralDb{db},
+		Stat:         statDb{db},
+		Admin:        adminDb{db},
 	}
 
 	return store, nil

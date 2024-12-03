@@ -27,6 +27,10 @@ func (u user) GetUser(c echo.Context) error {
 		return c.JSON(404, nil)
 	}
 
+	go func() {
+		u.store.Stat.Count(int64(jwtUserID))
+	}()
+
 	return c.JSON(200, user)
 }
 
