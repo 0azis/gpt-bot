@@ -35,6 +35,7 @@ type BotInterface interface {
 	CreateInvoiceLink(payload []byte, paymentCredentials domain.Payment) (string, error)
 	IsUserMember(channelID int, userID int) bool
 	PaymentInfo(paymentCredentials domain.Payment, status bool)
+	SendImage(imageLink string, userID int)
 	GetChannelInfo(channelID int) (domain.Channel, error)
 	getTelegramAvatar(ctx context.Context, userID int64) string
 	informUser(ctx context.Context, userID int64, errMsg string)
@@ -54,6 +55,14 @@ func New(cfg config.Telegram, store db.Store) (BotInterface, error) {
 	b, err := bot.New(cfg.GetToken())
 	b.SetMyDescription(context.Background(), &bot.SetMyDescriptionParams{
 		Description: "✨ Я - умная нейросеть, которая поможет тебе справиться с любой задачей!\n\n🔥Вы можете воспользоваться самыми современными инструментами:\n\n- DALLE + Runware + Midjourney: Генерация изображений на основе текста!\n\n- ChatGPT : получение ответов на вопросы, советы и помощь в разговоре на любую тему!\n\n➕ Редактор изображений, создание видео, увеличенная скорость ответа и генераций и многое другое.",
+	})
+	b.SetMyCommands(context.Background(), &bot.SetMyCommandsParams{
+		Commands: []models.BotCommand{
+			{Command: "/start", Description: "Главная страница"},
+			{Command: "/app", Description: "Информация о приложении"},
+			{Command: "/help", Description: "Техническая поддержка"},
+			{Command: "/menu", Description: "Информация об аккаунте"},
+		},
 	})
 	tgBot := tgBot{
 		telegram: cfg,
@@ -247,7 +256,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 			Filename: "preview.png",
 			Data:     bytes.NewReader(file),
 		},
-		Caption:     "<b>👋 Добро пожаловать в оригинальное приложение для использования нейросетей!</b>\n\nБесплатные нейросети с ежедневным лимитом:ChatGPT + Runware.\n\n<i>Для запуска приложения нажмите кнопку ниже...</i>",
+		Caption:     "<b>👋 Добро пожаловать в оригинальное приложение для использования нейросетей!</b>\n\nБесплатные нейросети с ежедневным лимитом: <b>ChatGPT + Runware.</b>\n\n<b>Полезные команды:</b>\n/help - техническая поддержка.\n/menu - управление приложением.\n/app - открыть мини-приложение.\n/start - перезапустить приложение.\n\n<i>Для запуска приложения нажмите кнопку ниже...</i>",
 		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
@@ -266,15 +275,25 @@ func (tb tgBot) appHandler(ctx context.Context, b *bot.Bot, update *models.Updat
 	kb := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
-				{Text: "Открыть WebAI", CallbackData: "mini_app", WebApp: &models.WebAppInfo{
+				{Text: "Открыть приложение", CallbackData: "mini_app", WebApp: &models.WebAppInfo{
 					URL: tb.telegram.GetWebAppUrl() + "?token=" + token.GetStrToken(),
 				}},
 			},
 		},
 	}
-	b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:      update.Message.From.ID,
-		Text:        "Нажмите на кнопку ниже для открытия мини-приложения.",
+	file, err := os.ReadFile("../assets/preview.jpg")
+	if err != nil {
+		slog.Error(err.Error())
+	}
+
+	b.SendPhoto(ctx, &bot.SendPhotoParams{
+		ChatID: update.Message.From.ID,
+		Photo: &models.InputFileUpload{
+			Filename: "preview.png",
+			Data:     bytes.NewReader(file),
+		},
+		Caption:     "<b>👋 Добро пожаловать в оригинальное приложение для использования нейросетей!</b>\n\nБесплатные нейросети с ежедневным лимитом: <b>ChatGPT + Runware.</b>\n\n<i>Для запуска приложения нажмите кнопку ниже...</i>",
+		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
 }
@@ -375,6 +394,15 @@ func (tb tgBot) IsUserMember(channelID int, userID int) bool {
 	}
 
 	return true
+}
+
+func (tb tgBot) SendImage(imageLink string, userID int) {
+	tb.b.SendPhoto(context.Background(), &bot.SendPhotoParams{
+		ChatID: userID,
+		Photo: &models.InputFileString{
+			Data: imageLink,
+		},
+	})
 }
 
 func (tb tgBot) GetChannelInfo(channelID int) (domain.Channel, error) {

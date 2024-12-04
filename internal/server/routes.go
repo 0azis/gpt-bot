@@ -21,7 +21,7 @@ func InitRoutes(e *echo.Echo, store db.Store, api api.Interface, b tgbot.BotInte
 	chatRoutes(apiRoute, store)
 	messageRoutes(apiRoute, store, api, savePath)
 	paymentRoutes(apiRoute, store, b, api)
-	imageRoutes(apiRoute, savePath)
+	imageRoutes(apiRoute, savePath, b)
 	bonusRoutes(apiRoute, store, b)
 }
 
@@ -56,7 +56,7 @@ func paymentRoutes(apiRoute *echo.Group, store db.Store, b tgbot.BotInterface, a
 	payment.POST("/webhook", controller.Webhook)
 }
 
-func imageRoutes(apiRoute *echo.Group, savePath string) {
+func imageRoutes(apiRoute *echo.Group, savePath string, b tgbot.BotInterface) {
 	if _, err := os.Stat(savePath); errors.Is(err, os.ErrNotExist) {
 		err := os.Mkdir(savePath, os.ModePerm)
 		if err != nil {
@@ -64,9 +64,10 @@ func imageRoutes(apiRoute *echo.Group, savePath string) {
 		}
 	}
 	image := apiRoute.Group("/image", AuthMiddleware)
-	controller := controllers.NewImageControllers(savePath)
+	controller := controllers.NewImageControllers(savePath, b)
 
 	image.POST("", controller.UploadImage)
+	image.GET("", controller.SendImageToTelegram)
 }
 
 func bonusRoutes(apiRoute *echo.Group, store db.Store, b tgbot.BotInterface) {
