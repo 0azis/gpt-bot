@@ -24,7 +24,7 @@ type User struct {
 	ID           int          `json:"id" db:"id"`
 	Subscription Subscription `json:"subscription"`
 	Limits       Limits       `json:"limits"`
-	Avatar       *string      `json:"avatar"`
+	Avatar       string       `json:"avatar"`
 	Balance      int          `json:"balance"`
 	LanguageCode string       `json:"language_code"`
 	ReferralCode *string      `json:"referralCode"`

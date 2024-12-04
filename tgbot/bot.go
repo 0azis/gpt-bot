@@ -112,7 +112,7 @@ func (tb tgBot) InitHandlers() {
 func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	var user domain.User
 	user.ID = int(update.Message.From.ID)
-	*user.Avatar = tb.getTelegramAvatar(ctx, int64(user.ID))
+	user.Avatar = tb.getTelegramAvatar(ctx, int64(user.ID))
 	user.LanguageCode = update.Message.From.LanguageCode
 
 	err := tb.store.User.Create(user)
