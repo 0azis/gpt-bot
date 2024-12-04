@@ -80,8 +80,10 @@ const (
 	ultimateMonth = "sub@ultimate-month"
 	ultimateYear  = "sub@ultimate-year"
 
-	referrals = "btn_4"
-	requests  = "btn_5"
+	referralsPage   = "referral@"
+	referralsSingle = "ref@"
+
+	requests = "btn_5"
 )
 
 type bonusData struct {
@@ -124,7 +126,7 @@ func (tb tgBot) adminHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 			},
 			{
 				{Text: "Пользователи", CallbackData: usersPage + "1"},
-				{Text: "Ссылки", CallbackData: referrals},
+				{Text: "Ссылки", CallbackData: referralsPage + "1"},
 			},
 			{
 				{Text: "Запросы", CallbackData: requests},
@@ -202,7 +204,7 @@ func (tb tgBot) adminMenu(ctx context.Context, b *bot.Bot, update *models.Update
 			},
 			{
 				{Text: "Пользователи", CallbackData: usersPage + "1"},
-				{Text: "ССылки", CallbackData: referrals},
+				{Text: "ССылки", CallbackData: referralsPage + "1"},
 			},
 			{
 				{Text: "Запросы", CallbackData: requests},
@@ -882,7 +884,6 @@ func (tb tgBot) usersPremium(ctx context.Context, b *bot.Bot, update *models.Upd
 		ShowAlert:       false,
 	})
 
-	fmt.Println(update.CallbackQuery.Data)
 	subName := strings.Split(update.CallbackQuery.Data, "@")[1]
 
 	var subscription domain.Payment
@@ -936,6 +937,7 @@ func (tb tgBot) referrals(ctx context.Context, b *bot.Bot, update *models.Update
 		sum++
 	}
 }
+
 func (tb tgBot) referralsPage(ctx context.Context, b *bot.Bot, update *models.Update) {
 	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
@@ -943,9 +945,104 @@ func (tb tgBot) referralsPage(ctx context.Context, b *bot.Bot, update *models.Up
 	})
 
 	tb.referrals(ctx, b, update)
+	fmt.Println(update.CallbackQuery.Data)
 
-	// id, err := strings.Split()
+	pageString := strings.Split(update.CallbackQuery.Data, "@")[1]
+	page, err := strconv.Atoi(pageString)
+	if err != nil {
 
+	}
+
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{},
+	}
+
+	for _, link := range rList.list[page] {
+		kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
+			{Text: fmt.Sprintf("#%d - %s", link.ID, link.Name), CallbackData: referralsSingle + strconv.Itoa(link.ID)},
+		})
+	}
+
+	pages := []models.InlineKeyboardButton{}
+	for page := range uList.list {
+		pages = append(pages, models.InlineKeyboardButton{
+			Text: strconv.Itoa(page), CallbackData: usersPage + strconv.Itoa(page),
+		})
+	}
+
+	kb.InlineKeyboard = append(kb.InlineKeyboard, pages)
+	kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
+		{Text: "Выгрузить список", CallbackData: "string"},
+		{Text: "+ Создать новую ссылку", CallbackData: "string"},
+	})
+	kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
+		{Text: "Назад", CallbackData: "string"},
+		{Text: "В меню", CallbackData: menu},
+	})
+
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:      update.CallbackQuery.From.ID,
+		MessageID:   update.CallbackQuery.Message.Message.ID,
+		Text:        "referrals page",
+		ReplyMarkup: kb,
+	})
+}
+
+func (tb tgBot) referralSingle(ctx context.Context, b *bot.Bot, update *models.Update) {
+	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+		ShowAlert:       false,
+	})
+
+	tb.referrals(ctx, b, update)
+	fmt.Println(update.CallbackQuery.Data)
+
+	idString := strings.Split(update.CallbackQuery.Data, "@")[1]
+	id, err := strconv.Atoi(idString)
+	if err != nil {
+
+	}
+
+	ref, err := tb.store.Referral.GetOneByID(id)
+	if err != nil {
+	}
+	ref.SetLink()
+
+	usersCount, err := tb.store.Referral.CountUsers(ref.ID)
+	if err != nil {
+	}
+
+	var activeUsersPercent int
+	activeUsersCount, err := tb.store.Referral.ActiveUsers(ref.Code)
+	if err != nil {
+	}
+	if usersCount != 0 {
+		activeUsersPercent = (activeUsersCount / usersCount) * 100
+	}
+
+	premiumUsersCount := 0
+
+	var deadUsersPercent int
+	deadUsersCount := usersCount - activeUsersCount
+	if deadUsersCount != 0 {
+		deadUsersPercent = (deadUsersCount / usersCount) * 100
+	}
+
+	runMiniApp, err := tb.store.Referral.RunMiniApp(ref.Code)
+	if err != nil {
+
+	}
+	notRunMiniApp, err := tb.store.Referral.NotRunMiniApp(ref.Code)
+	if err != nil {
+	}
+
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    update.CallbackQuery.From.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+		Text: fmt.Sprintf("Управление ссылкой\n|-Ссылка: %s\n|-Название: %s\n\nСтатистика ссылки\nВсего переходов: %d\nУникальных: %d (100%%)\n\nСтатистика пользователей\n|-Всего: %d\n|-Активных: %d (%d %%)\n|-Мертвых: %d (%d %%)\n|-Премиум: %d (%d %%)\n|-RTL: %d (%d %%)\n\nСтатистика проходимости\n|-Запуски: %d\n|-Выполнили бонусов %d\n|-Ушли после /start: %d",
+			ref.Link, ref.Name, usersCount, usersCount, usersCount, activeUsersCount, activeUsersPercent, deadUsersCount, deadUsersPercent, premiumUsersCount, premiumUsersCount, 0, 0, runMiniApp, 0, notRunMiniApp),
+		ParseMode: models.ParseModeHTML,
+	})
 }
 
 func (tb tgBot) callbackHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -1006,9 +1103,6 @@ func (tb tgBot) callbackHandler(ctx context.Context, b *bot.Bot, update *models.
 		tb.f.Transition(update.CallbackQuery.From.ID, stateUserPremium, update.CallbackQuery)
 	case usersDiamonds:
 		tb.f.Transition(update.CallbackQuery.From.ID, stateUserDiamonds, update.CallbackQuery)
-
-	// referrals
-	case referrals:
 
 	}
 }
