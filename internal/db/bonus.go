@@ -11,9 +11,9 @@ type bonusDb struct {
 	db *sqlx.DB
 }
 
-func (b bonusDb) Create(bonus domain.Bonus) error {
+func (b bonusDb) Create() error {
 	var bonusID int64
-	sqlResult, err := b.db.Exec(`insert into bonuses (channel_name, award) values (?, ?) on duplicate key update channel_name = channel_name`, bonus.Channel.Name, bonus.Award)
+	sqlResult, err := b.db.Exec(`insert into bonuses values ()`)
 	if err != nil {
 		return err
 	}
@@ -27,9 +27,34 @@ func (b bonusDb) Create(bonus domain.Bonus) error {
 	return err
 }
 
+func (b bonusDb) UpdateName(id int, name string) error {
+	_, err := b.db.Exec(`update bonuses set name = ? where id = ?`, name, id)
+	return err
+}
+
+func (b bonusDb) UpdateChannel(id int, channelID int, link string) error {
+	_, err := b.db.Exec(`update bonuses set channel_id = ?, link = ? where id = ?`, channelID, link, id)
+	return err
+}
+
+// func (b bonusDb) UpdateAward(id int, award int) error {
+// 	_, err := b.db.Exec(`update bonuses set award = ? where id = ?`, award, id)
+// 	return err
+// }
+
+func (b bonusDb) UpdateStatus(id int, status bool) error {
+	_, err := b.db.Exec(`update bonuses set is_check = ? where id = ?`, status, id)
+	return err
+}
+
+func (b bonusDb) UpdateMaxUsers(id int, maxUsers int) error {
+	_, err := b.db.Exec(`update bonuses set max_users = ? where id = ?`, maxUsers, id)
+	return err
+}
+
 func (b bonusDb) GetAll(userID int) ([]*domain.Bonus, error) {
 	var bonuses []*domain.Bonus
-	rows, err := b.db.Query(`select distinct bonuses.*, user_bonuses.awarded from bonuses join user_bonuses on user_bonuses.bonus_id = bonuses.id where user_bonuses.user_id = ?`, userID)
+	rows, err := b.db.Query(`select distinct bonuses.ID, bonuses.link, bonuses.channel_id, bonuses.award, user_bonuses.awarded from bonuses join user_bonuses on user_bonuses.bonus_id = bonuses.id where user_bonuses.user_id = ? and is_check = 1`, userID)
 	if err != nil {
 		return bonuses, err
 	}
@@ -37,7 +62,7 @@ func (b bonusDb) GetAll(userID int) ([]*domain.Bonus, error) {
 
 	for rows.Next() {
 		var bonus domain.Bonus
-		err = rows.Scan(&bonus.ID, &bonus.Channel.Name, &bonus.Award, &bonus.Awarded)
+		err = rows.Scan(&bonus.ID, &bonus.Link, &bonus.Channel.ID, &bonus.Award, &bonus.Awarded)
 		if err != nil {
 			return bonuses, err
 		}
@@ -49,14 +74,14 @@ func (b bonusDb) GetAll(userID int) ([]*domain.Bonus, error) {
 
 func (b bonusDb) GetOne(bonusID int) (domain.Bonus, error) {
 	var bonus domain.Bonus
-	rows, err := b.db.Query(`select bonuses.*, user_bonuses.awarded from bonuses join user_bonuses on user_bonuses.bonus_id = bonuses.id where bonuses.id = ?`, bonusID)
+	rows, err := b.db.Query(`select bonuses.id, bonuses.name, bonuses.channel_id, bonuses.is_check, bonuses.max_users, bonuses.created_at from bonuses join user_bonuses on user_bonuses.bonus_id = bonuses.id where bonuses.id = ?`, bonusID)
 	if err != nil {
 		return bonus, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.Scan(&bonus.ID, &bonus.Channel.Name, &bonus.Award, &bonus.Awarded)
+		err = rows.Scan(&bonus.ID, &bonus.Name, &bonus.Channel.ID, &bonus.Check, &bonus.MaxUsers, &bonus.CreatedAt)
 		if err != nil {
 			return bonus, err
 		}
@@ -101,20 +126,58 @@ func (b bonusDb) GetOne(bonusID int) (domain.Bonus, error) {
 // 	return uncompletedBonuses, err
 // }
 
-func (b bonusDb) DailyBonuses() (int, error) {
+func (b bonusDb) DailyBonusesCount() (int, error) {
 	var dailyBonuses int
 	err := b.db.Get(&dailyBonuses, `select count(*) from user_bonuses where awarded = 1 and awarded_at >= curdate()`)
 	return dailyBonuses, err
 }
 
-func (b bonusDb) AllBonuses() (int, error) {
+func (b bonusDb) MonthlyBonusesCount() (int, error) {
+	var monthlyBonuses int
+	err := b.db.Get(&monthlyBonuses, `select count(*) from user_bonuses where awarded = 1 and awarded_at >= date_sub(curdate(), interval dayofmonth(curdate())-1 day)`)
+	return monthlyBonuses, err
+}
+
+func (b bonusDb) AllBonusesCount() (int, error) {
 	var allBonuses int
 	err := b.db.Get(&allBonuses, `select count(*) from user_bonuses where awarded = 1`)
 	return allBonuses, err
 }
 
-func (b bonusDb) Delete(channel_name string) error {
-	rows, err := b.db.Query(`delete from bonuses where channel_name = ?`, channel_name)
+func (b bonusDb) AllBonuses() ([]*domain.Bonus, error) {
+	var bonuses []*domain.Bonus
+	rows, err := b.db.Query(`select bonuses.id, bonuses.name, bonuses.channel_id, bonuses.is_check, bonuses.link, bonuses.max_users, bonuses.created_at from bonuses`)
+	if err != nil {
+		return bonuses, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var bonus domain.Bonus
+		err = rows.Scan(&bonus.ID, &bonus.Name, &bonus.Channel.ID, &bonus.Check, &bonus.Link, &bonus.MaxUsers, &bonus.CreatedAt)
+		if err != nil {
+			return bonuses, err
+		}
+		bonuses = append(bonuses, &bonus)
+	}
+
+	return bonuses, nil
+}
+
+func (b bonusDb) BonusesByID(bonusID int) (int, error) {
+	var allBonuses int
+	err := b.db.Get(&allBonuses, `select count(user_id) from user_bonuses where awarded = 1 and bonus_id = ?`, bonusID)
+	return allBonuses, err
+}
+
+func (b bonusDb) BonusesByUser(userID int) (int, error) {
+	var bonusUser int
+	err := b.db.Get(&bonusUser, `select count(user_id) from user_bonuses where user_id = ? and awarded = 1`)
+	return bonusUser, err
+}
+
+func (b bonusDb) Delete(id int) error {
+	rows, err := b.db.Query(`delete from bonuses where id = ?`, id)
 	defer rows.Close()
 	return err
 }

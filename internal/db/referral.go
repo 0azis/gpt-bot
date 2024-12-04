@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"gpt-bot/internal/db/domain"
 	"gpt-bot/utils"
 
@@ -36,7 +37,8 @@ func (r referralDb) Delete(id int) error {
 }
 
 func (r referralDb) AddUser(userID, refID int) error {
-	rows, err := r.db.Query(`insert into user_referrals values (?, ?) on duplicate key update user_id = user_id`, refID, userID)
+	date := utils.Timestamp()
+	rows, err := r.db.Query(`insert into user_referrals values (?, ?, ?) on duplicate key update user_id = user_id`, refID, userID, date)
 	defer rows.Close()
 	return err
 }
@@ -44,5 +46,31 @@ func (r referralDb) AddUser(userID, refID int) error {
 func (r referralDb) CountUsers(refID int) (int, error) {
 	var countUsers int
 	err := r.db.Get(&countUsers, `select count(*) from user_referrals where referral_id = ?`, refID)
+	return countUsers, err
+}
+
+func (r referralDb) UpdateCode(id int, code string) error {
+	if len(code) != 5 {
+		return errors.New("bad code")
+	}
+	_, err := r.db.Exec(`update referrals set code = ? where id = ?`, code, id)
+	return err
+}
+
+func (r referralDb) AllUsers() (int, error) {
+	var countUsers int
+	err := r.db.Get(&countUsers, `select count(*) from user_referrals`)
+	return countUsers, err
+}
+
+func (r referralDb) MonthlyUsers() (int, error) {
+	var countUsers int
+	err := r.db.Get(&countUsers, `select count(*) from user_referrals where date(created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day)`)
+	return countUsers, err
+}
+
+func (r referralDb) DailyUsers() (int, error) {
+	var countUsers int
+	err := r.db.Get(&countUsers, `select count(*) from user_referrals where date(created_at) >= curdate()`)
 	return countUsers, err
 }

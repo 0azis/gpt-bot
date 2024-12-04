@@ -28,7 +28,6 @@ services:
         condition: service_healthy
     ports:
       - "5000:5000"
-
 volumes:
   97576e2b42f4b9a1b78761b067a6e7008151316b11a02be51a3362408d8def68:
     external: true
