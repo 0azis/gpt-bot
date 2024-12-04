@@ -54,7 +54,7 @@ func (b bonusDb) UpdateMaxUsers(id int, maxUsers int) error {
 
 func (b bonusDb) GetAll(userID int) ([]*domain.Bonus, error) {
 	var bonuses []*domain.Bonus
-	rows, err := b.db.Query(`select distinct bonuses.ID, bonuses.channel_id, bonuses.award, user_bonuses.awarded from bonuses join user_bonuses on user_bonuses.bonus_id = bonuses.id where user_bonuses.user_id = ?`, userID)
+	rows, err := b.db.Query(`select distinct bonuses.ID, bonuses.link, bonuses.channel_id, bonuses.award, user_bonuses.awarded from bonuses join user_bonuses on user_bonuses.bonus_id = bonuses.id where user_bonuses.user_id = ? and is_check = 1`, userID)
 	if err != nil {
 		return bonuses, err
 	}
@@ -62,7 +62,7 @@ func (b bonusDb) GetAll(userID int) ([]*domain.Bonus, error) {
 
 	for rows.Next() {
 		var bonus domain.Bonus
-		err = rows.Scan(&bonus.ID, &bonus.Channel.ID, &bonus.Award, &bonus.Awarded)
+		err = rows.Scan(&bonus.ID, &bonus.Link, &bonus.Channel.ID, &bonus.Award, &bonus.Awarded)
 		if err != nil {
 			return bonuses, err
 		}
@@ -146,7 +146,7 @@ func (b bonusDb) AllBonusesCount() (int, error) {
 
 func (b bonusDb) AllBonuses() ([]*domain.Bonus, error) {
 	var bonuses []*domain.Bonus
-	rows, err := b.db.Query(`select bonuses.id, bonuses.name, bonuses.channel_id, bonuses.is_check, bonuses.link, bonuses.max_users, bonuses.created_at from bonuses join user_bonuses on user_bonuses.bonus_id = bonuses.id`)
+	rows, err := b.db.Query(`select bonuses.id, bonuses.name, bonuses.channel_id, bonuses.is_check, bonuses.link, bonuses.max_users, bonuses.created_at from bonuses`)
 	if err != nil {
 		return bonuses, err
 	}

@@ -14,7 +14,7 @@ services:
       timeout: 10s
       retries: 3
     volumes:
-      # - "97576e2b42f4b9a1b78761b067a6e7008151316b11a02be51a3362408d8def68:/var/lib/mysql"
+      - "97576e2b42f4b9a1b78761b067a6e7008151316b11a02be51a3362408d8def68:/var/lib/mysql"
       - "./migrations/migration.sql:/docker-entrypoint-initdb.d/init.sql"
     ports:
       - "3306:3306"
@@ -28,6 +28,6 @@ services:
         condition: service_healthy
     ports:
       - "5000:5000"
-# volumes:
-#   97576e2b42f4b9a1b78761b067a6e7008151316b11a02be51a3362408d8def68:
-#     external: true
+volumes:
+  97576e2b42f4b9a1b78761b067a6e7008151316b11a02be51a3362408d8def68:
+    external: true
