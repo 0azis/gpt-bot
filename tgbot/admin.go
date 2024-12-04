@@ -572,61 +572,64 @@ func (tb tgBot) bonusInfo(ctx context.Context, b *bot.Bot, update *models.Update
 		ShowAlert:       false,
 	})
 
-	idString := strings.Split(update.CallbackQuery.Data, "@")[1]
-	id, err := strconv.Atoi(idString)
-	if err != nil {
+	if len(update.CallbackQuery.Data) > 1 {
+		idString := strings.Split(update.CallbackQuery.Data, "@")[1]
+		id, err := strconv.Atoi(idString)
+		if err != nil {
 
-	}
-	bonusScheme.bonusID = id
+		}
+		bonusScheme.bonusID = id
+		bonus, err := tb.store.Bonus.GetOne(id)
+		if err != nil {
+		}
 
-	bonus, err := tb.store.Bonus.GetOne(id)
-	if err != nil {
-	}
+		isCheck := []string{}
+		if bonus.Check {
+			isCheck = append(isCheck, "* Проверять *")
+			isCheck = append(isCheck, "Не проверять")
 
-	isCheck := []string{}
-	if bonus.Check {
-		isCheck = append(isCheck, "* Проверять *")
-		isCheck = append(isCheck, "Не проверять")
+		} else {
+			isCheck = append(isCheck, "Проверять")
+			isCheck = append(isCheck, "* Не проверять *")
+		}
 
-	} else {
-		isCheck = append(isCheck, "Проверять")
-		isCheck = append(isCheck, "* Не проверять *")
-	}
-
-	kb := &models.InlineKeyboardMarkup{
-		InlineKeyboard: [][]models.InlineKeyboardButton{
-			{
-				{Text: "Изменить канал", CallbackData: bonusesChangeChannelNamePost},
+		kb := &models.InlineKeyboardMarkup{
+			InlineKeyboard: [][]models.InlineKeyboardButton{
+				{
+					{Text: "Изменить канал", CallbackData: bonusesChangeChannelNamePost},
+				},
+				{
+					{Text: "Название", CallbackData: bonusesChangeName},
+					{Text: "Количество", CallbackData: bonusesChangeMaxUsers},
+				},
+				{
+					{Text: isCheck[0], CallbackData: bonusCheckTrue},
+					{Text: isCheck[1], CallbackData: bonusCheckFalse},
+				},
+				{
+					{Text: "Удалить из списка", CallbackData: bonusesDelete},
+				},
+				{
+					{Text: "Назад", CallbackData: bonusesBack},
+					{Text: "В меню", CallbackData: menu},
+				},
 			},
-			{
-				{Text: "Название", CallbackData: bonusesChangeName},
-				{Text: "Количество", CallbackData: bonusesChangeMaxUsers},
-			},
-			{
-				{Text: isCheck[0], CallbackData: bonusCheckTrue},
-				{Text: isCheck[1], CallbackData: bonusCheckFalse},
-			},
-			{
-				{Text: "Удалить из списка", CallbackData: bonusesDelete},
-			},
-			{
-				{Text: "Назад", CallbackData: bonusesBack},
-				{Text: "В меню", CallbackData: menu},
-			},
-		},
-	}
+		}
 
-	tgChannel, err := tb.GetChannelInfo(bonus.Channel.ID)
-	if err != nil {
-	}
-	bonus.Channel = tgChannel
+		tgChannel, err := tb.GetChannelInfo(bonus.Channel.ID)
+		if err != nil {
+			slog.Error(err.Error())
+			return
+		}
+		bonus.Channel = tgChannel
 
-	b.EditMessageText(ctx, &bot.EditMessageTextParams{
-		ChatID:      update.CallbackQuery.From.ID,
-		MessageID:   update.CallbackQuery.Message.Message.ID,
-		Text:        fmt.Sprintf("|-Канал: %d\n|-Название кнопки: %s\n|-Количество подписок: %d\n|-Создано: %s", bonus.Channel.ID, bonus.Name, bonus.MaxUsers, bonus.CreatedAt),
-		ReplyMarkup: kb,
-	})
+		b.EditMessageText(ctx, &bot.EditMessageTextParams{
+			ChatID:      update.CallbackQuery.From.ID,
+			MessageID:   update.CallbackQuery.Message.Message.ID,
+			Text:        fmt.Sprintf("|-Канал: %d\n|-Название кнопки: %s\n|-Количество подписок: %d\n|-Создано: %s", bonus.Channel.ID, bonus.Name, bonus.MaxUsers, bonus.CreatedAt),
+			ReplyMarkup: kb,
+		})
+	}
 }
 
 func (tb tgBot) bonusCreate(ctx context.Context, b *bot.Bot, update *models.Update) {

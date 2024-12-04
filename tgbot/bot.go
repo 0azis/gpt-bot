@@ -349,16 +349,19 @@ func (tb tgBot) GetChannelInfo(channelID int) (domain.Channel, error) {
 	if err != nil {
 		return channel, err
 	}
-
 	channel.Title = tgChannel.Title
 
-	file, err := tb.b.GetFile(context.Background(), &bot.GetFileParams{
-		FileID: tgChannel.Photo.SmallFileID,
-	})
-	if err != nil {
-		return channel, err
+	var url string
+	if tgChannel.Photo != nil {
+		file, err := tb.b.GetFile(context.Background(), &bot.GetFileParams{
+			FileID: tgChannel.Photo.SmallFileID,
+		})
+		if err != nil {
+			return channel, err
+		}
+
+		url = tb.b.FileDownloadLink(file)
 	}
-	url := tb.b.FileDownloadLink(file)
 
 	channel.Avatar = url
 	return channel, nil
