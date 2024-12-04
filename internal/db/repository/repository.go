@@ -120,13 +120,17 @@ type BonusRepository interface {
 type ReferralRepository interface {
 	Create() error
 	GetOne(code string) (int, error)
+	GetOneByID(id int) (domain.Referral, error)
 	GetAll() ([]domain.Referral, error)
 	Delete(id int) error
 	AddUser(userID, refId int) error
+	RunMiniApp(code string) (int, error)
+	NotRunMiniApp(code string) (int, error)
 	CountUsers(id int) (int, error)
 	AllUsers() (int, error)
 	MonthlyUsers() (int, error)
 	DailyUsers() (int, error)
+	ActiveUsers(code string) (int, error)
 }
 
 type StatRepository interface {

@@ -110,6 +110,8 @@ func (tb tgBot) InitHandlers() {
 	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "admin@", bot.MatchTypePrefix, tb.usersAdmin)
 	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "model@", bot.MatchTypePrefix, tb.usersLimitsModel)
 	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "sub@", bot.MatchTypePrefix, tb.usersPremium)
+	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "referral@", bot.MatchTypePrefix, tb.referralsPage)
+	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "ref@", bot.MatchTypePrefix, tb.referralSingle)
 
 	// tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "mini_app", bot.MatchTypePrefix, tb.cb)
 
@@ -126,13 +128,13 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 	user.Avatar = tb.getTelegramAvatar(ctx, int64(user.ID))
 	user.LanguageCode = update.Message.From.LanguageCode
 
-	// err := tb.store.User.Create(user)
-	// if err != nil {
-	// 	slog.Error(err.Error())
-	// 	tb.informUser(ctx, int64(user.ID), userCreationError)
-	// 	return
-	// }
-	err := tb.store.Subscription.InitStandard(user.ID)
+	err := tb.store.User.Create(user)
+	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, int64(user.ID), userCreationError)
+		return
+	}
+	err = tb.store.Subscription.InitStandard(user.ID)
 	if err != nil {
 		slog.Error(err.Error())
 		tb.informUser(ctx, int64(user.ID), userCreationError)

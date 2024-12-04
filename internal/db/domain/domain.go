@@ -253,6 +253,7 @@ const baseUrl = "https://t.me/webai_robot?start="
 
 type Referral struct {
 	ID   int    `db:"id"`
+	Name string `db:"name"`
 	Code string `db:"code"`
 	Link string
 }
