@@ -187,7 +187,7 @@ func NewAssistantImageMessage(chatID int, content string) Message {
 	return Message{
 		ChatID:  chatID,
 		Content: content,
-		Role:    openai.ChatMessageRoleUser,
+		Role:    openai.ChatMessageRoleAssistant,
 		Type:    "image",
 	}
 }

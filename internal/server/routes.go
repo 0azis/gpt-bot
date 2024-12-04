@@ -67,7 +67,7 @@ func imageRoutes(apiRoute *echo.Group, savePath string, b tgbot.BotInterface) {
 	controller := controllers.NewImageControllers(savePath, b)
 
 	image.POST("", controller.UploadImage)
-	image.GET("", controller.SendImageToTelegram)
+	image.POST("/send", controller.SendImageToTelegram)
 }
 
 func bonusRoutes(apiRoute *echo.Group, store db.Store, b tgbot.BotInterface) {
