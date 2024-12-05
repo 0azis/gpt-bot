@@ -7,6 +7,7 @@ type UserRepository interface {
 	Create(user domain.User) error
 	GetByID(jwtUserID int) (domain.User, error)
 	GetAll() ([]domain.User, error)
+	SetIsNewFalse(id int) error
 
 	// referral
 	IsUserReferred(userID int, refCode string) (int, error)
@@ -70,6 +71,7 @@ type MessageRepository interface {
 	RequestsDaily() (domain.LimitsMap, error)
 	RequestsWeekly() (domain.LimitsMap, error)
 	RequestsMontly() (domain.LimitsMap, error)
+	RequestsAll() (domain.LimitsMap, error)
 	// UsersDaily() (int, error)
 	// UsersWeekly() (int, error)
 	// UsersMonthly() (int, error)
@@ -131,6 +133,8 @@ type ReferralRepository interface {
 	MonthlyUsers() (int, error)
 	DailyUsers() (int, error)
 	ActiveUsers(code string) (int, error)
+	UpdateCode(id int, code string) error
+	UpdateName(id int, name string) error
 }
 
 type StatRepository interface {

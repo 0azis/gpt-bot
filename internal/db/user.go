@@ -21,14 +21,14 @@ func (u userDb) Create(user domain.User) error {
 
 func (u userDb) GetByID(jwtUserID int) (domain.User, error) {
 	var user domain.User
-	rows, err := u.db.Query(`select users.id, subscriptions.name, subscriptions.start, subscriptions.end, limits.o1_preview, limits.gpt_4o, limits.o1_mini, limits.gpt_4o_mini, limits.runware, limits.dall_e_3, users.balance, users.avatar, users.referral_code, users.referred_by, users.created_at from users join subscriptions on subscriptions.user_id = users.id join limits on limits.user_id = users.id where users.id = ?`, jwtUserID)
+	rows, err := u.db.Query(`select users.id, users.is_new, subscriptions.name, subscriptions.start, subscriptions.end, limits.o1_preview, limits.gpt_4o, limits.o1_mini, limits.gpt_4o_mini, limits.runware, limits.dall_e_3, users.balance, users.avatar, users.referral_code, users.referred_by, users.created_at from users join subscriptions on subscriptions.user_id = users.id join limits on limits.user_id = users.id where users.id = ?`, jwtUserID)
 	if err != nil {
 		return user, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.Scan(&user.ID, &user.Subscription.Name, &user.Subscription.Start, &user.Subscription.End, &user.Limits.O1Preview, &user.Limits.Gpt4o, &user.Limits.O1Mini, &user.Limits.Gpt4oMini, &user.Limits.Runware, &user.Limits.Dalle3, &user.Balance, &user.Avatar, &user.ReferralCode, &user.ReferredBy, &user.CreatedAt)
+		err = rows.Scan(&user.ID, &user.IsNew, &user.Subscription.Name, &user.Subscription.Start, &user.Subscription.End, &user.Limits.O1Preview, &user.Limits.Gpt4o, &user.Limits.O1Mini, &user.Limits.Gpt4oMini, &user.Limits.Runware, &user.Limits.Dalle3, &user.Balance, &user.Avatar, &user.ReferralCode, &user.ReferredBy, &user.CreatedAt)
 		if err != nil {
 			return user, err
 		}
@@ -55,6 +55,11 @@ func (u userDb) GetAll() ([]domain.User, error) {
 	}
 
 	return users, nil
+}
+
+func (u userDb) SetIsNewFalse(id int) error {
+	_, err := u.db.Exec(`update users set is_new = false where id = ?`, id)
+	return err
 }
 
 func (u userDb) IsUserReferred(userID int, refCode string) (int, error) {
@@ -196,7 +201,7 @@ func (u userDb) MonthlyUsersReferred() (int, error) {
 
 func (u userDb) PremiumUsers() ([]domain.User, error) {
 	var premiumUsers []domain.User
-	err := u.db.Get(&premiumUsers, `select * from users join subscriptions on subscriptions.user_id = users.id where subscriptions.name = "advanced" or subscriptions.name = "ultimate"`)
+	err := u.db.Select(&premiumUsers, `select users.id from users join subscriptions on subscriptions.user_id = users.id where subscriptions.name = "advanced" or subscriptions.name = "ultimate"`)
 	return premiumUsers, err
 }
 

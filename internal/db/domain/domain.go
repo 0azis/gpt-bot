@@ -31,6 +31,7 @@ type User struct {
 	ReferredBy   *string      `json:"referredBy"`
 	Username     string
 	CreatedAt    string `json:"createdAt"`
+	IsNew        bool   `json:"isNewbie"`
 }
 
 func (u User) IsModelValid(model string) bool {

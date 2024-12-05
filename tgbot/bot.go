@@ -81,6 +81,9 @@ func New(cfg config.Telegram, store db.Store) (BotInterface, error) {
 		stateUserLimitsAmount: tgBot.callbackUserLimitsAmount,
 		stateUserPremium:      tgBot.callbackUserPremium,
 		stateUserDiamonds:     tgBot.callbackUserDiamonds,
+
+		stateReferralName: tgBot.callbackReferralName,
+		stateReferralCode: tgBot.callbackReferralCode,
 	})
 	tgBot.f = f
 	return tgBot, err
@@ -106,12 +109,14 @@ func (tb tgBot) InitHandlers() {
 	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "btn_", bot.MatchTypePrefix, tb.callbackHandler)
 	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "id@", bot.MatchTypePrefix, tb.bonusInfo)
 	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "page@", bot.MatchTypePrefix, tb.usersPage)
+	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "prempage@", bot.MatchTypePrefix, tb.premiumUsersPage)
 	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "user@", bot.MatchTypePrefix, tb.userSingle)
 	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "admin@", bot.MatchTypePrefix, tb.usersAdmin)
 	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "model@", bot.MatchTypePrefix, tb.usersLimitsModel)
 	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "sub@", bot.MatchTypePrefix, tb.usersPremium)
 	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "referral@", bot.MatchTypePrefix, tb.referralsPage)
 	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "ref@", bot.MatchTypePrefix, tb.referralSingle)
+	tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "del@", bot.MatchTypePrefix, tb.referralDelete)
 
 	// tb.b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "mini_app", bot.MatchTypePrefix, tb.cb)
 
@@ -166,7 +171,21 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 	msgSlice := strings.Split(update.Message.Text, " ")
 	if len(msgSlice) == 2 {
 		refCode := &msgSlice[1]
-		if len(*refCode) == utils.UserRefCode {
+		adRes, err := tb.store.Referral.GetOne(*refCode)
+		if err != nil {
+			slog.Error(err.Error())
+			tb.informUser(ctx, int64(user.ID), userCreationError)
+			return
+		}
+
+		userRes, err := tb.store.User.IsUserReferred(user.ID, *refCode)
+		if err != nil {
+			slog.Error(err.Error())
+			tb.informUser(ctx, int64(user.ID), userCreationError)
+			return
+		}
+
+		if userRes != 0 {
 			id, err := tb.store.User.IsUserReferred(user.ID, *refCode)
 			if err != nil {
 				slog.Error(err.Error())
@@ -207,7 +226,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 				return
 			}
 		}
-		if len(*refCode) == utils.AdRefCode {
+		if adRes != 0 {
 			refID, err := tb.store.Referral.GetOne(*refCode)
 			if errors.Is(err, sql.ErrNoRows) {
 				tb.informUser(ctx, int64(user.ID), referralInvalid)
@@ -247,7 +266,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 		},
 	}
 
-	file, err := os.ReadFile("../assets/preview.jpg")
+	file, err := os.ReadFile("../assets/preview.png")
 	if err != nil {
 		slog.Error(err.Error())
 	}
@@ -258,7 +277,7 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 			Filename: "preview.png",
 			Data:     bytes.NewReader(file),
 		},
-		Caption:     "<b>👋 Добро пожаловать в оригинальное приложение для использования нейросетей!</b>\n\nБесплатные нейросети с ежедневным лимитом: <b>ChatGPT + Runware.</b>\n\n<b>Полезные команды:</b>\n/help - техническая поддержка.\n/menu - управление приложением.\n/app - открыть мини-приложение.\n/start - перезапустить приложение.\n\n<i>Для запуска приложения нажмите кнопку ниже...</i>",
+		Caption:     "<b>👋 Добро пожаловать в оригинальное приложение для использования нейросетей!</b>\n\nБесплатные нейросети с ежедневным лимитом: <code>ChatGPT + Runware.</code>\n\n<b>Нейросети, с которыми работает WebAi:</b> <code>ChatGPT, Midjourney, DALLE, Runway, Runware, Suno, Gemini.</code>\n\n<b>Полезные команды:</b>\n/help - техническая поддержка.\n/menu - управление приложением.\n/app - открыть мини-приложение.\n/start - перезапустить приложение.\n\n<i>Для запуска приложения нажмите кнопку ниже...</i>",
 		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
@@ -283,7 +302,7 @@ func (tb tgBot) appHandler(ctx context.Context, b *bot.Bot, update *models.Updat
 			},
 		},
 	}
-	file, err := os.ReadFile("../assets/preview.jpg")
+	file, err := os.ReadFile("../assets/preview.png")
 	if err != nil {
 		slog.Error(err.Error())
 	}
@@ -553,6 +572,16 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 				}
 				tb.usersDiamonds(diamonds, update.Message)
 				tb.f.Transition(update.Message.From.ID, stateDefault)
+
+			case stateReferralName:
+				tb.referralChangeName(update.Message.Text)
+				tb.f.Transition(update.Message.From.ID, stateDefault)
+				tb.referralsPage(ctx, b, update)
+			case stateReferralCode:
+				tb.referralChangeCode(update.Message.Text)
+				tb.f.Transition(update.Message.From.ID, stateDefault)
+				tb.referralsPage(ctx, b, update)
+
 			}
 		}
 		if update.Message.ForwardOrigin != nil {
