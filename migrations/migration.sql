@@ -3,6 +3,7 @@ CREATE TABLE users (
     avatar varchar(255) not null,
     balance int default 150 not null,
     language_code varchar(255) not null,
+    is_new bool default true not null,
     referral_code varchar(5),
     referred_by varchar(5),
     created_at timestamp default current_timestamp,

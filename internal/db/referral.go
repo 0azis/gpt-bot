@@ -1,7 +1,6 @@
 package db
 
 import (
-	"errors"
 	"gpt-bot/internal/db/domain"
 	"gpt-bot/utils"
 
@@ -14,13 +13,25 @@ type referralDb struct {
 
 func (r referralDb) Create() error {
 	code := utils.GenerateReferralCode(utils.AdRefCode)
-	_, err := r.db.Exec(`insert into referrals (code) values (?)`, code)
+	_, err := r.db.Exec(`insert into referrals (name, code) values (?, ?)`, "", code)
 	return err
 }
 
 func (r referralDb) GetOne(code string) (int, error) {
 	var refID int
-	err := r.db.Get(&refID, `select id from referrals where code = ?`, code)
+	rows, err := r.db.Query(`select id from referrals where code = ?`, code)
+	if err != nil {
+		return refID, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.Scan(&refID)
+		if err != nil {
+			return refID, err
+		}
+	}
+
 	return refID, err
 }
 
@@ -74,10 +85,12 @@ func (r referralDb) NotRunMiniApp(code string) (int, error) {
 }
 
 func (r referralDb) UpdateCode(id int, code string) error {
-	if len(code) != 5 {
-		return errors.New("bad code")
-	}
 	_, err := r.db.Exec(`update referrals set code = ? where id = ?`, code, id)
+	return err
+}
+
+func (r referralDb) UpdateName(id int, name string) error {
+	_, err := r.db.Exec(`update referrals set name = ? where id = ?`, name, id)
 	return err
 }
 

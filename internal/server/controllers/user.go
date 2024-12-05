@@ -28,6 +28,7 @@ func (u user) GetUser(c echo.Context) error {
 	}
 
 	go func() {
+		u.store.User.SetIsNewFalse(user.ID)
 		u.store.Stat.Count(int64(jwtUserID))
 	}()
 

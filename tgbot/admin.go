@@ -36,6 +36,9 @@ const (
 	stateUserLimitsAmount fsm.StateID = "stateUserLimitsAmount"
 	stateUserPremium      fsm.StateID = "stateUserPremium"
 	stateUserDiamonds     fsm.StateID = "stateUserDiamonds"
+
+	stateReferralName fsm.StateID = "stateReferralName"
+	stateReferralCode fsm.StateID = "stateReferralCode"
 )
 
 const (
@@ -61,12 +64,13 @@ const (
 	bonusCheckFalse              = "btn_2_10"
 	bonuseID                     = "id@"
 
-	usersPage      = "page@"
-	usersSinge     = "user@"
-	usersMakeAdmin = "admin@"
-	usersLimits    = "btn_3_1"
-	usersPremium   = "btn_3_2"
-	usersDiamonds  = "btn_3_3"
+	usersPage        = "page@"
+	usersSinge       = "user@"
+	usersMakeAdmin   = "admin@"
+	premiumUsersPage = "prempage@"
+	usersLimits      = "btn_3_1"
+	usersPremium     = "btn_3_2"
+	usersDiamonds    = "btn_3_3"
 
 	gpt4o      = "model@gpt_4o"
 	gpt4o_mini = "model@gpt_4o_mini"
@@ -80,10 +84,18 @@ const (
 	ultimateMonth = "sub@ultimate-month"
 	ultimateYear  = "sub@ultimate-year"
 
-	referralsPage   = "referral@"
-	referralsSingle = "ref@"
+	referralsPage       = "referral@"
+	referralsSingle     = "ref@"
+	referralsDel        = "del@"
+	referralsChangeName = "btn_4_1"
+	referralsChangeCode = "btn_4_2"
+	referralsCreate     = "btn_4_3"
 
-	requests = "btn_5"
+	requests        = "btn_5"
+	requestsDaily   = "btn_5_1"
+	requestsWeekly  = "btn_5_2"
+	requestsMonthly = "btn_5_3"
+	requestsAll     = "btn_5_4"
 )
 
 type bonusData struct {
@@ -112,6 +124,7 @@ var bonusScheme bonusData
 var uLimits userLimits
 var uList usersList
 var rList referralList
+var referralID int
 
 func (tb tgBot) adminHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if !tb.store.Admin.CheckID(int(update.Message.From.ID)) {
@@ -721,6 +734,98 @@ func (tb tgBot) users(ctx context.Context, b *bot.Bot, update *models.Update) {
 	}
 }
 
+func (tb tgBot) premiumUsers(ctx context.Context, b *bot.Bot, update *models.Update) {
+	users, err := tb.store.User.PremiumUsers()
+	if err != nil {
+		slog.Error(err.Error())
+	}
+
+	uList.list = map[int][]domain.User{}
+
+	page := 1
+	sum := 0
+	for _, user := range users {
+		if sum == 5 {
+			sum = 0
+			page++
+		}
+
+		chat, err := tb.b.GetChat(ctx, &bot.GetChatParams{
+			ChatID: user.ID,
+		})
+		if err != nil {
+			slog.Error(err.Error())
+		}
+
+		if chat != nil {
+			if chat.Username == "" {
+				chat.Username = "null"
+			}
+			// kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
+			// 	{Text: fmt.Sprintf("#%d - @%s", user.ID, chat.Username), CallbackData: "wer"},
+			// })
+			uList.list[page] = append(uList.list[page], domain.User{ID: user.ID, Username: chat.Username})
+			sum++
+		}
+	}
+}
+
+func (tb tgBot) premiumUsersPage(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if update.CallbackQuery != nil {
+		b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			ShowAlert:       false,
+		})
+	}
+
+	tb.premiumUsers(ctx, b, update)
+
+	pageString := strings.Split(update.CallbackQuery.Data, "@")
+	page, err := strconv.Atoi(pageString[1])
+	if err != nil {
+	}
+
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{},
+	}
+
+	for _, u := range uList.list[page] {
+		kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
+			{Text: fmt.Sprintf("👤#%d - @%s", u.ID, u.Username), CallbackData: usersSinge + strconv.Itoa(u.ID)},
+		})
+	}
+
+	pages := []models.InlineKeyboardButton{}
+	for page := range uList.list {
+		pages = append(pages, models.InlineKeyboardButton{
+			Text: strconv.Itoa(page), CallbackData: usersPage + strconv.Itoa(page),
+		})
+	}
+	kb.InlineKeyboard = append(kb.InlineKeyboard, pages)
+	kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
+		{Text: "Выгрузить список", CallbackData: "string"},
+	})
+	kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
+		{Text: "Назад", CallbackData: "string"},
+		{Text: "В меню", CallbackData: menu},
+	})
+
+	if update.CallbackQuery != nil {
+		b.EditMessageText(ctx, &bot.EditMessageTextParams{
+			ChatID:      update.CallbackQuery.From.ID,
+			MessageID:   update.CallbackQuery.Message.Message.ID,
+			Text:        "users page",
+			ReplyMarkup: kb,
+		})
+	} else {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID:      update.Message.From.ID,
+			Text:        "users page",
+			ReplyMarkup: kb,
+		})
+	}
+}
+
 func (tb tgBot) usersAdmin(ctx context.Context, b *bot.Bot, update *models.Update) {
 	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
@@ -784,7 +889,7 @@ func (tb tgBot) usersPage(ctx context.Context, b *bot.Bot, update *models.Update
 		{Text: "Выгрузить список", CallbackData: "string"},
 	})
 	kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
-		{Text: "👑Премиум-User", CallbackData: "sdf"},
+		{Text: "👑Премиум-User", CallbackData: premiumUsersPage + "1"},
 	})
 	kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
 		{Text: "Назад", CallbackData: "string"},
@@ -939,18 +1044,25 @@ func (tb tgBot) referrals(ctx context.Context, b *bot.Bot, update *models.Update
 }
 
 func (tb tgBot) referralsPage(ctx context.Context, b *bot.Bot, update *models.Update) {
-	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
-		CallbackQueryID: update.CallbackQuery.ID,
-		ShowAlert:       false,
-	})
+	if update.CallbackQuery != nil {
+		b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			ShowAlert:       false,
+		})
+	}
 
 	tb.referrals(ctx, b, update)
-	fmt.Println(update.CallbackQuery.Data)
 
-	pageString := strings.Split(update.CallbackQuery.Data, "@")[1]
-	page, err := strconv.Atoi(pageString)
-	if err != nil {
+	var page = 1
+	if update.CallbackQuery != nil {
+		pageString := strings.Split(update.CallbackQuery.Data, "@")
+		if pageString[0] != "del" && pageString[0] != "btn_4_3" {
+			p, err := strconv.Atoi(pageString[1])
+			if err != nil {
 
+			}
+			page = p
+		}
 	}
 
 	kb := &models.InlineKeyboardMarkup{
@@ -964,28 +1076,39 @@ func (tb tgBot) referralsPage(ctx context.Context, b *bot.Bot, update *models.Up
 	}
 
 	pages := []models.InlineKeyboardButton{}
-	for page := range uList.list {
+	for page := range rList.list {
 		pages = append(pages, models.InlineKeyboardButton{
-			Text: strconv.Itoa(page), CallbackData: usersPage + strconv.Itoa(page),
+			Text: strconv.Itoa(page), CallbackData: referralsPage + strconv.Itoa(page),
 		})
 	}
 
 	kb.InlineKeyboard = append(kb.InlineKeyboard, pages)
 	kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
 		{Text: "Выгрузить список", CallbackData: "string"},
-		{Text: "+ Создать новую ссылку", CallbackData: "string"},
+		{Text: "+ Создать новую ссылку", CallbackData: referralsCreate},
 	})
 	kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
 		{Text: "Назад", CallbackData: "string"},
 		{Text: "В меню", CallbackData: menu},
 	})
 
-	b.EditMessageText(ctx, &bot.EditMessageTextParams{
-		ChatID:      update.CallbackQuery.From.ID,
-		MessageID:   update.CallbackQuery.Message.Message.ID,
-		Text:        "referrals page",
-		ReplyMarkup: kb,
-	})
+	if update.CallbackQuery != nil {
+		b.EditMessageText(ctx, &bot.EditMessageTextParams{
+			ChatID:      update.CallbackQuery.From.ID,
+			MessageID:   update.CallbackQuery.Message.Message.ID,
+			Text:        "referrals page",
+			ReplyMarkup: kb,
+		})
+
+	} else {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID:      update.Message.From.ID,
+			Text:        "referrals page",
+			ReplyMarkup: kb,
+		})
+
+	}
+
 }
 
 func (tb tgBot) referralSingle(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -995,12 +1118,29 @@ func (tb tgBot) referralSingle(ctx context.Context, b *bot.Bot, update *models.U
 	})
 
 	tb.referrals(ctx, b, update)
-	fmt.Println(update.CallbackQuery.Data)
 
 	idString := strings.Split(update.CallbackQuery.Data, "@")[1]
 	id, err := strconv.Atoi(idString)
 	if err != nil {
 
+	}
+
+	referralID = id
+
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "Изменить ссылку", CallbackData: referralsChangeCode},
+				{Text: "Изменить название", CallbackData: referralsChangeName},
+			},
+			{
+				{Text: "Удалить из списка", CallbackData: referralsDel + strconv.Itoa(id)},
+			},
+			{
+				{Text: "Назад", CallbackData: "string"},
+				{Text: "В меню", CallbackData: menu},
+			},
+		},
 	}
 
 	ref, err := tb.store.Referral.GetOneByID(id)
@@ -1032,16 +1172,205 @@ func (tb tgBot) referralSingle(ctx context.Context, b *bot.Bot, update *models.U
 	if err != nil {
 
 	}
-	notRunMiniApp, err := tb.store.Referral.NotRunMiniApp(ref.Code)
+	notRunMiniApp := usersCount - runMiniApp
+
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    update.CallbackQuery.From.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+		Text: fmt.Sprintf("Управление ссылкой\n|-Ссылка: %s\n|-Название: %s\n\nСтатистика ссылки\n|-Всего переходов: %d\n|-Уникальных: %d (100%%)\n\nСтатистика пользователей\n|-Всего: %d\n|-Активных: %d (%d %%)\n|-Мертвых: %d (%d %%)\n|-Премиум: %d (%d %%)\n|-RTL: %d (%d %%)\n\nСтатистика проходимости\n|-Запуски: %d\n|-Выполнили бонусов %d\n|-Ушли после /start: %d",
+			ref.Link, ref.Name, usersCount, usersCount, usersCount, activeUsersCount, activeUsersPercent, deadUsersCount, deadUsersPercent, premiumUsersCount, premiumUsersCount, 0, 0, runMiniApp, 0, notRunMiniApp),
+		ParseMode:   models.ParseModeHTML,
+		ReplyMarkup: kb,
+	})
+}
+
+func (tb tgBot) referralCreate(ctx context.Context, b *bot.Bot, update *models.Update) {
+	err := tb.store.Referral.Create()
 	if err != nil {
+		slog.Error(err.Error())
+	}
+
+}
+
+func (tb tgBot) referralDelete(ctx context.Context, b *bot.Bot, update *models.Update) {
+	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+		ShowAlert:       false,
+	})
+
+	idString := strings.Split(update.CallbackQuery.Data, "@")[1]
+	id, err := strconv.Atoi(idString)
+	if err != nil {
+	}
+
+	err = tb.store.Referral.Delete(id)
+	if err != nil {
+	}
+
+	tb.referralsPage(ctx, b, update)
+}
+
+func (tb tgBot) referralChangeName(name string) {
+	err := tb.store.Referral.UpdateName(referralID, name)
+	if err != nil {
+	}
+
+}
+func (tb tgBot) referralChangeCode(code string) {
+	err := tb.store.Referral.UpdateCode(referralID, code)
+	if err != nil {
+	}
+}
+
+func (tb tgBot) requests(ctx context.Context, b *bot.Bot, update *models.Update) {
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "За сегодня", CallbackData: requestsDaily},
+				{Text: "За неделю", CallbackData: requestsWeekly},
+				{Text: "За месяц", CallbackData: requestsMonthly},
+			},
+			{
+				{Text: "За все время", CallbackData: requestsAll},
+			},
+			{
+				{Text: "Назад", CallbackData: "string"},
+				{Text: "В меню", CallbackData: menu},
+			},
+		},
+	}
+
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:      update.CallbackQuery.From.ID,
+		MessageID:   update.CallbackQuery.Message.Message.ID,
+		Text:        "choose",
+		ReplyMarkup: kb,
+	})
+
+}
+
+func (tb tgBot) requestsDaily(ctx context.Context, b *bot.Bot, update *models.Update) {
+	msgs, err := tb.store.Message.RequestsDaily()
+	if err != nil {
+	}
+
+	kb := &models.InlineKeyboardMarkup{
+
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "За сегодня", CallbackData: requestsDaily},
+				{Text: "За неделю", CallbackData: requestsWeekly},
+				{Text: "За месяц", CallbackData: requestsMonthly},
+			},
+			{
+				{Text: "За все время", CallbackData: requestsAll},
+			},
+			{
+				{Text: "Назад", CallbackData: "string"},
+				{Text: "В меню", CallbackData: menu},
+			},
+		},
 	}
 
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("Управление ссылкой\n|-Ссылка: %s\n|-Название: %s\n\nСтатистика ссылки\nВсего переходов: %d\nУникальных: %d (100%%)\n\nСтатистика пользователей\n|-Всего: %d\n|-Активных: %d (%d %%)\n|-Мертвых: %d (%d %%)\n|-Премиум: %d (%d %%)\n|-RTL: %d (%d %%)\n\nСтатистика проходимости\n|-Запуски: %d\n|-Выполнили бонусов %d\n|-Ушли после /start: %d",
-			ref.Link, ref.Name, usersCount, usersCount, usersCount, activeUsersCount, activeUsersPercent, deadUsersCount, deadUsersPercent, premiumUsersCount, premiumUsersCount, 0, 0, runMiniApp, 0, notRunMiniApp),
-		ParseMode: models.ParseModeHTML,
+		Text: fmt.Sprintf("Статистика запросов к нейросетям\n\nChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d",
+			msgs["gpt-4o-mini"], msgs["o1-mini"], msgs["o1-preview"], msgs["gpt-4o"], msgs["dall-e-3"], msgs["runware"]),
+		ReplyMarkup: kb,
+	})
+}
+func (tb tgBot) requestsWeekly(ctx context.Context, b *bot.Bot, update *models.Update) {
+	msgs, err := tb.store.Message.RequestsWeekly()
+	if err != nil {
+	}
+
+	kb := &models.InlineKeyboardMarkup{
+
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "За сегодня", CallbackData: requestsDaily},
+				{Text: "За неделю", CallbackData: requestsWeekly},
+				{Text: "За месяц", CallbackData: requestsMonthly},
+			},
+			{
+				{Text: "За все время", CallbackData: requestsAll},
+			},
+			{
+				{Text: "Назад", CallbackData: "string"},
+				{Text: "В меню", CallbackData: menu},
+			},
+		},
+	}
+
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    update.CallbackQuery.From.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+		Text: fmt.Sprintf("Статистика запросов к нейросетям\n\nChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d",
+			msgs["gpt-4o-mini"], msgs["o1-mini"], msgs["o1-preview"], msgs["gpt-4o"], msgs["dall-e-3"], msgs["runware"]),
+		ReplyMarkup: kb,
+	})
+
+}
+func (tb tgBot) requestsMonthly(ctx context.Context, b *bot.Bot, update *models.Update) {
+	msgs, err := tb.store.Message.RequestsMontly()
+	if err != nil {
+	}
+	kb := &models.InlineKeyboardMarkup{
+
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "За сегодня", CallbackData: requestsDaily},
+				{Text: "За неделю", CallbackData: requestsWeekly},
+				{Text: "За месяц", CallbackData: requestsMonthly},
+			},
+			{
+				{Text: "За все время", CallbackData: requestsAll},
+			},
+			{
+				{Text: "Назад", CallbackData: "string"},
+				{Text: "В меню", CallbackData: menu},
+			},
+		},
+	}
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    update.CallbackQuery.From.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+		Text: fmt.Sprintf("Статистика запросов к нейросетям\n\nChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d",
+			msgs["gpt-4o-mini"], msgs["o1-mini"], msgs["o1-preview"], msgs["gpt-4o"], msgs["dall-e-3"], msgs["runware"]),
+		ReplyMarkup: kb,
+	})
+
+}
+func (tb tgBot) requestsAll(ctx context.Context, b *bot.Bot, update *models.Update) {
+	msgs, err := tb.store.Message.RequestsAll()
+	if err != nil {
+	}
+
+	kb := &models.InlineKeyboardMarkup{
+
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "За сегодня", CallbackData: requestsDaily},
+				{Text: "За неделю", CallbackData: requestsWeekly},
+				{Text: "За месяц", CallbackData: requestsMonthly},
+			},
+			{
+				{Text: "За все время", CallbackData: requestsAll},
+			},
+			{
+				{Text: "Назад", CallbackData: "string"},
+				{Text: "В меню", CallbackData: menu},
+			},
+		},
+	}
+
+	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    update.CallbackQuery.From.ID,
+		MessageID: update.CallbackQuery.Message.Message.ID,
+		Text: fmt.Sprintf("Статистика запросов к нейросетям\n\nChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d",
+			msgs["gpt-4o-mini"], msgs["o1-mini"], msgs["o1-preview"], msgs["gpt-4o"], msgs["dall-e-3"], msgs["runware"]),
+		ReplyMarkup: kb,
 	})
 }
 
@@ -1103,6 +1432,26 @@ func (tb tgBot) callbackHandler(ctx context.Context, b *bot.Bot, update *models.
 		tb.f.Transition(update.CallbackQuery.From.ID, stateUserPremium, update.CallbackQuery)
 	case usersDiamonds:
 		tb.f.Transition(update.CallbackQuery.From.ID, stateUserDiamonds, update.CallbackQuery)
+
+	case referralsCreate:
+		tb.referralCreate(ctx, b, update)
+		tb.referralsPage(ctx, b, update)
+
+	case referralsChangeName:
+		tb.f.Transition(update.CallbackQuery.From.ID, stateReferralName, update.CallbackQuery)
+	case referralsChangeCode:
+		tb.f.Transition(update.CallbackQuery.From.ID, stateReferralCode, update.CallbackQuery)
+
+	case requests:
+		tb.requests(ctx, b, update)
+	case requestsDaily:
+		tb.requestsDaily(ctx, b, update)
+	case requestsWeekly:
+		tb.requestsWeekly(ctx, b, update)
+	case requestsMonthly:
+		tb.requestsMonthly(ctx, b, update)
+	case requestsAll:
+		tb.requestsAll(ctx, b, update)
 
 	}
 }
@@ -1283,4 +1632,43 @@ func (tb tgBot) callbackUserDiamonds(f *fsm.FSM, args ...any) {
 		Text:        "Напишите количество алмазов",
 		ReplyMarkup: kb,
 	})
+
+}
+
+func (tb tgBot) callbackReferralName(f *fsm.FSM, args ...any) {
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "Отмена", CallbackData: menu},
+			},
+		},
+	}
+
+	callbackQuery := args[0].(*models.CallbackQuery)
+	tb.b.EditMessageText(context.Background(), &bot.EditMessageTextParams{
+		ChatID:      callbackQuery.From.ID,
+		MessageID:   callbackQuery.Message.Message.ID,
+		Text:        "Напишите название",
+		ReplyMarkup: kb,
+	})
+
+}
+
+func (tb tgBot) callbackReferralCode(f *fsm.FSM, args ...any) {
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "Отмена", CallbackData: menu},
+			},
+		},
+	}
+
+	callbackQuery := args[0].(*models.CallbackQuery)
+	tb.b.EditMessageText(context.Background(), &bot.EditMessageTextParams{
+		ChatID:      callbackQuery.From.ID,
+		MessageID:   callbackQuery.Message.Message.ID,
+		Text:        "Напишите название",
+		ReplyMarkup: kb,
+	})
+
 }
