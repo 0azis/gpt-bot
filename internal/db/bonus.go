@@ -37,10 +37,10 @@ func (b bonusDb) UpdateChannel(id int, channelID int, link string) error {
 	return err
 }
 
-// func (b bonusDb) UpdateAward(id int, award int) error {
-// 	_, err := b.db.Exec(`update bonuses set award = ? where id = ?`, award, id)
-// 	return err
-// }
+func (b bonusDb) UpdateAward(id int, award int) error {
+	_, err := b.db.Exec(`update bonuses set award = ? where id = ?`, award, id)
+	return err
+}
 
 func (b bonusDb) UpdateStatus(id int, status bool) error {
 	_, err := b.db.Exec(`update bonuses set is_check = ? where id = ?`, status, id)
@@ -74,14 +74,14 @@ func (b bonusDb) GetAll(userID int) ([]*domain.Bonus, error) {
 
 func (b bonusDb) GetOne(bonusID int) (domain.Bonus, error) {
 	var bonus domain.Bonus
-	rows, err := b.db.Query(`select bonuses.id, bonuses.name, bonuses.channel_id, bonuses.is_check, bonuses.max_users, bonuses.created_at from bonuses join user_bonuses on user_bonuses.bonus_id = bonuses.id where bonuses.id = ?`, bonusID)
+	rows, err := b.db.Query(`select bonuses.id, bonuses.name, bonuses.award, bonuses.channel_id, bonuses.is_check, bonuses.max_users, bonuses.created_at from bonuses join user_bonuses on user_bonuses.bonus_id = bonuses.id where bonuses.id = ?`, bonusID)
 	if err != nil {
 		return bonus, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.Scan(&bonus.ID, &bonus.Name, &bonus.Channel.ID, &bonus.Check, &bonus.MaxUsers, &bonus.CreatedAt)
+		err = rows.Scan(&bonus.ID, &bonus.Name, &bonus.Award, &bonus.Channel.ID, &bonus.Check, &bonus.MaxUsers, &bonus.CreatedAt)
 		if err != nil {
 			return bonus, err
 		}

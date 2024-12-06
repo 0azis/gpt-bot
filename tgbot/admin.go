@@ -31,6 +31,7 @@ const (
 	stateChannelLink     fsm.StateID = "stateChannelLink"
 	stateBonusName       fsm.StateID = "stateBonusName"
 	stateBonusMaxUsers   fsm.StateID = "stateBonusMaxUsers"
+	stateBonusAward      fsm.StateID = "stateBonusAward"
 
 	stateUserLimitsModel  fsm.StateID = "stateUserLimitsModel"
 	stateUserLimitsAmount fsm.StateID = "stateUserLimitsAmount"
@@ -59,9 +60,10 @@ const (
 	bonusesChangeChannelNameHand = "btn_2_5"
 	bonusesChangeName            = "btn_2_6"
 	bonusesChangeMaxUsers        = "btn_2_7"
-	bonusesDelete                = "btn_2_8"
-	bonusCheckTrue               = "btn_2_9"
-	bonusCheckFalse              = "btn_2_10"
+	bonusesChangeAward           = "btn_2_8"
+	bonusesDelete                = "btn_2_9"
+	bonusCheckTrue               = "btn_2_10"
+	bonusCheckFalse              = "btn_2_11"
 	bonuseID                     = "id@"
 
 	usersPage        = "page@"
@@ -202,7 +204,7 @@ func (tb tgBot) adminHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      update.Message.From.ID,
-		Text:        fmt.Sprintf("👑 Премиум пользователей: %d\n\n🚀 Запусков: %d | %d | %d\n🎁 Выполнено бонусов: %d | %d | %d\n\n✅ Статистика пользователей\n|-Саморост: %d | %d | %d\n|-Приглашены: %d | %d | %d\n|-Реферальные ссылки: %d | %d | %d\n", premiumUsers, statsDaily, statsMonthly, statsAll, bonusesDaily, bonusesMonthly, bonusesAll, usersDaily, usersMonthly, usersAll, usersReferredDaily, usersReferredMonthly, usersReferredAll, referralUsersDaily, referralUsersMonthly, referralsUsersAll),
+		Text:        fmt.Sprintf("👑 <b>Премиум пользователей:</b> %d\n\n🚀 <b>Запусков:</b> %d | %d | %d\n🎁 <b>Выполнено бонусов:</b> %d | %d | %d\n\n✅ <b>Статистика пользователей</b>\n|-Саморост: %d | %d | %d\n|-Приглашены: %d | %d | %d\n|-Реферальные ссылки: %d | %d | %d\n", premiumUsers, statsDaily, statsMonthly, statsAll, bonusesDaily, bonusesMonthly, bonusesAll, usersDaily, usersMonthly, usersAll, usersReferredDaily, usersReferredMonthly, usersReferredAll, referralUsersDaily, referralUsersMonthly, referralsUsersAll),
 		ReplyMarkup: kb,
 		ParseMode:   models.ParseModeHTML,
 	})
@@ -217,7 +219,7 @@ func (tb tgBot) adminMenu(ctx context.Context, b *bot.Bot, update *models.Update
 			},
 			{
 				{Text: "Пользователи", CallbackData: usersPage + "1"},
-				{Text: "ССылки", CallbackData: referralsPage + "1"},
+				{Text: "Ссылки", CallbackData: referralsPage + "1"},
 			},
 			{
 				{Text: "Запросы", CallbackData: requests},
@@ -243,7 +245,7 @@ func (tb tgBot) adminMenu(ctx context.Context, b *bot.Bot, update *models.Update
 	bonusesMonthly, err := tb.store.Bonus.MonthlyBonusesCount()
 	if err != nil {
 	}
-	bonusesAll, err := tb.store.Bonus.AllBonuses()
+	bonusesAll, err := tb.store.Bonus.AllBonusesCount()
 	if err != nil {
 	}
 
@@ -279,7 +281,8 @@ func (tb tgBot) adminMenu(ctx context.Context, b *bot.Bot, update *models.Update
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:      update.CallbackQuery.From.ID,
 		MessageID:   update.CallbackQuery.Message.Message.ID,
-		Text:        fmt.Sprintf("👑 Премиум пользователей: %d\n\n🚀 Запусков: %d | %d | %d\n🎁 Выполнено бонусов: %d | %d | %d\n\n✅ Статистика пользователей\n|-Саморост: %d | %d | %d\n|-Приглашены: %d | %d | %d\n|-Реферальные ссылки: %d | %d | %d\n", premiumUsers, statsDaily, statsMonthly, statsAll, bonusesDaily, bonusesMonthly, bonusesAll, usersDaily, usersMonthly, usersAll, usersReferredDaily, usersReferredMonthly, usersReferredAll, referralUsersDaily, referralUsersMonthly, referralsUsersAll),
+		Text:        fmt.Sprintf("👑 <b>Премиум пользователей:</b> %d\n\n🚀 <b>Запусков:</b> %d | %d | %d\n🎁 <b>Выполнено бонусов:</b> %d | %d | %d\n\n✅ <b>Статистика пользователей</b>\n|-Саморост: %d | %d | %d\n|-Приглашены: %d | %d | %d\n|-Реферальные ссылки: %d | %d | %d\n", premiumUsers, statsDaily, statsMonthly, statsAll, bonusesDaily, bonusesMonthly, bonusesAll, usersDaily, usersMonthly, usersAll, usersReferredDaily, usersReferredMonthly, usersReferredAll, referralUsersDaily, referralUsersMonthly, referralsUsersAll),
+		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
 }
@@ -310,8 +313,26 @@ func (tb tgBot) statisticsMenu(ctx context.Context, b *bot.Bot, update *models.U
 }
 
 func (tb tgBot) statisticsDaily(ctx context.Context, b *bot.Bot, update *models.Update) {
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "За сегодня", CallbackData: statisticsDaily},
+				{Text: "За неделю", CallbackData: statisticsWeekly},
+				{Text: "За месяц", CallbackData: statisticsMonthly},
+			},
+			{
+				{Text: "За все время", CallbackData: statisticsAll},
+			},
+			{
+				{Text: "Назад", CallbackData: statisticsBack},
+				{Text: "В меню", CallbackData: menu},
+			},
+		},
+	}
+
 	dailyUsersCount, err := tb.store.User.DailyUsersCount()
 	if err != nil {
+
 	}
 	messagesDaily, err := tb.store.Message.MessagesDaily()
 	if err != nil {
@@ -322,6 +343,7 @@ func (tb tgBot) statisticsDaily(ctx context.Context, b *bot.Bot, update *models.
 
 	dailyUsers, err := tb.store.User.DailyUsers()
 	if err != nil {
+		slog.Error(err.Error())
 	}
 
 	newDailyUsers := dailyUsersCount
@@ -332,11 +354,9 @@ func (tb tgBot) statisticsDaily(ctx context.Context, b *bot.Bot, update *models.
 		slog.Error(err.Error())
 	}
 
-	var activeUsersDailyPercent int
-	if dailyUsersCount == 0 {
-		activeUsersDailyPercent = 0
-	} else {
-		activeUsersDailyPercent = (activeUsersDaily / dailyUsersCount) * 100
+	var activeUsersDailyPercent float32
+	if dailyUsersCount != 0 {
+		activeUsersDailyPercent = (float32(activeUsersDaily) / float32(dailyUsersCount)) * 100
 	}
 
 	deadUsersCount := 0
@@ -346,41 +366,61 @@ func (tb tgBot) statisticsDaily(ctx context.Context, b *bot.Bot, update *models.
 		}
 	}
 
-	var deadUsersPercent int
-	if dailyUsersCount == 0 {
-		deadUsersPercent = 0
-	} else {
-		deadUsersPercent = (deadUsersCount / dailyUsersCount) * 100
+	var deadUsersPercent float32
+	if dailyUsersCount != 0 {
+		deadUsersPercent = (float32(deadUsersCount) / float32(dailyUsersCount)) * 100
 	}
 
 	aliveUsers := dailyUsersCount - deadUsersCount
-	var aliveUsersPercent int
-	if dailyUsersCount == 0 {
-		aliveUsersPercent = 0
-	} else {
-		aliveUsersPercent = (aliveUsers / dailyUsersCount) * 100
+	var aliveUsersPercent float32
+	if dailyUsersCount != 0 {
+		aliveUsersPercent = (float32(aliveUsers) / float32(dailyUsersCount)) * 100
 	}
 
-	premiumUsersCount, err := tb.store.User.PremiumUsersCount()
+	premiumUsersCount, err := tb.store.User.PremiumUsersCountDaily()
 	if err != nil {
 	}
 
-	var premiumUsersPercent int
-	if dailyUsersCount == 0 {
-		premiumUsersPercent = 0
-	} else {
-		premiumUsersPercent = (premiumUsersCount / dailyUsersCount) * 100
+	var premiumUsersPercent float32
+	if dailyUsersCount != 0 {
+		premiumUsersPercent = (float32(premiumUsersCount) / float32(dailyUsersCount)) * 100
+	}
+
+	geoUsers, err := tb.store.User.GeoUsersDaily()
+	if err != nil {
+	}
+	var geoUsersPercent float32
+	if dailyUsersCount != 0 {
+		geoUsersPercent = (float32(geoUsers) / float32(dailyUsersCount)) * 100
 	}
 
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("Статистика бота:\n|-Получено сообщений: %d\n|-Получено нажатий: %d\n\nСтатистика пользователей:\n|-Всего: %d\n|-Новых: %d (%d %%)\n|-Активные: %d (%d %%)\n|-Живые: %d (%d %%)\n|-Мертвые: %d (%d %%)\n|-Премиум: %d (%d %%)",
-			messagesDaily, statsDaily, dailyUsersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, activeUsersDailyPercent, aliveUsers, aliveUsersPercent, deadUsersCount, deadUsersPercent, premiumUsersCount, premiumUsersPercent),
+		Text: fmt.Sprintf("📊<b>Статистика бота:</b>\n|-Получено сообщений: <b>%d</b>\n|-Получено нажатий: <b>%d</b>\n\n👥<b>Статистика пользователей:</b>\n|-Всего: <b>%d</b>\n|-Новых: <b>%d</b> (%d %%)\n|-Активные: <b>%d</b> (%d %%)\n|-Живые: <b>%d</b> (%d %%)\n|-Мертвые: <b>%d</b> (%d %%)\n|-Премиум: <b>%d</b> (%d %%)\n\n🌎<b>Анализ аудитории:</b>\n|-🇷🇺RU: <b>%d</b> (%d %%)\n",
+			messagesDaily, statsDaily, dailyUsersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, int(activeUsersDailyPercent), aliveUsers, int(aliveUsersPercent), deadUsersCount, int(deadUsersPercent), premiumUsersCount, int(premiumUsersPercent), geoUsers, int(geoUsersPercent)),
+		ParseMode:   models.ParseModeHTML,
+		ReplyMarkup: kb,
 	})
 }
 
 func (tb tgBot) statisticsWeekly(ctx context.Context, b *bot.Bot, update *models.Update) {
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "За сегодня", CallbackData: statisticsDaily},
+				{Text: "За неделю", CallbackData: statisticsWeekly},
+				{Text: "За месяц", CallbackData: statisticsMonthly},
+			},
+			{
+				{Text: "За все время", CallbackData: statisticsAll},
+			},
+			{
+				{Text: "Назад", CallbackData: statisticsBack},
+				{Text: "В меню", CallbackData: menu},
+			},
+		},
+	}
 	usersCount, err := tb.store.User.WeeklyUsersCount()
 	if err != nil {
 	}
@@ -402,7 +442,7 @@ func (tb tgBot) statisticsWeekly(ctx context.Context, b *bot.Bot, update *models
 	if err != nil {
 		slog.Error(err.Error())
 	}
-	activeUsersDailyPercent := (activeUsersDaily / usersCount) * 100
+	activeUsersDailyPercent := (float32(activeUsersDaily) / float32(usersCount)) * 100
 
 	deadUsersCount := 0
 	for _, user := range users {
@@ -410,25 +450,53 @@ func (tb tgBot) statisticsWeekly(ctx context.Context, b *bot.Bot, update *models
 			deadUsersCount += 1
 		}
 	}
-	deadUsersPercent := (deadUsersCount / usersCount) * 100
+	deadUsersPercent := (float32(deadUsersCount) / float32(usersCount)) * 100
 
 	aliveUsers := usersCount - deadUsersCount
-	aliveUsersPercent := (aliveUsers / usersCount) * 100
+	aliveUsersPercent := (float32(aliveUsers) / float32(usersCount)) * 100
 
-	premiumUsersCount, err := tb.store.User.PremiumUsersCount()
+	premiumUsersCount, err := tb.store.User.PremiumUsersCountWeekly()
 	if err != nil {
 	}
-	premiumUsersPercent := (premiumUsersCount / usersCount) * 100
+	premiumUsersPercent := (float32(premiumUsersCount) / float32(usersCount)) * 100
+
+	geoUsers, err := tb.store.User.GeoUsersWeekly()
+	if err != nil {
+	}
+
+	var geoUsersPercent float32
+	if usersCount != 0 {
+		geoUsersPercent = (float32(geoUsers) / float32(usersCount)) * 100
+	}
 
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("Статистика бота:\n|-Получено сообщений: %d\n|-Получено нажатий: %d\n\nСтатистика пользователей:\n|-Всего: %d\n|-Новых: %d (%d %%)\n|-Активные: %d (%d %%)\n|-Живые: %d (%d %%)\n|-Мертвые: %d (%d %%)\n|-Премиум: %d (%d %%)",
-			messagesDaily, statsDaily, usersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, activeUsersDailyPercent, aliveUsers, aliveUsersPercent, deadUsersCount, deadUsersPercent, premiumUsersCount, premiumUsersPercent),
+		Text: fmt.Sprintf("📊<b>Статистика бота:</b>\n|-Получено сообщений: <b>%d</b>\n|-Получено нажатий: <b>%d</b>\n\n👥<b>Статистика пользователей:</b>\n|-Всего: <b>%d</b>\n|-Новых: <b>%d</b> (%d %%)\n|-Активные: <b>%d</b> (%d %%)\n|-Живые: <b>%d</b> (%d %%)\n|-Мертвые: <b>%d</b> (%d %%)\n|-Премиум: <b>%d</b> (%d %%)\n\n🌎<b>Анализ аудитории:</b>\n|-🇷🇺RU: <b>%d</b> (%d %%)\n",
+			messagesDaily, statsDaily, usersCount, newDailyUsers, int(newDailyUsersPercent), activeUsersDaily, int(activeUsersDailyPercent), aliveUsers, int(aliveUsersPercent), deadUsersCount, int(deadUsersPercent), premiumUsersCount, int(premiumUsersPercent), geoUsers, int(geoUsersPercent)),
+		ParseMode:   models.ParseModeHTML,
+		ReplyMarkup: kb,
 	})
 }
 
 func (tb tgBot) statisticsMonthly(ctx context.Context, b *bot.Bot, update *models.Update) {
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "За сегодня", CallbackData: statisticsDaily},
+				{Text: "За неделю", CallbackData: statisticsWeekly},
+				{Text: "За месяц", CallbackData: statisticsMonthly},
+			},
+			{
+				{Text: "За все время", CallbackData: statisticsAll},
+			},
+			{
+				{Text: "Назад", CallbackData: statisticsBack},
+				{Text: "В меню", CallbackData: menu},
+			},
+		},
+	}
+
 	usersCount, err := tb.store.User.MonthlyUsersCount()
 	if err != nil {
 	}
@@ -450,7 +518,7 @@ func (tb tgBot) statisticsMonthly(ctx context.Context, b *bot.Bot, update *model
 	if err != nil {
 		slog.Error(err.Error())
 	}
-	activeUsersDailyPercent := (activeUsersDaily / usersCount) * 100
+	activeUsersDailyPercent := (float32(activeUsersDaily) / float32(usersCount)) * 100
 
 	deadUsersCount := 0
 	for _, user := range users {
@@ -458,25 +526,52 @@ func (tb tgBot) statisticsMonthly(ctx context.Context, b *bot.Bot, update *model
 			deadUsersCount += 1
 		}
 	}
-	deadUsersPercent := (deadUsersCount / usersCount) * 100
+	deadUsersPercent := (float32(deadUsersCount) / float32(usersCount)) * 100
 
 	aliveUsers := usersCount - deadUsersCount
-	aliveUsersPercent := (aliveUsers / usersCount) * 100
+	aliveUsersPercent := (float32(aliveUsers) / float32(usersCount)) * 100
 
-	premiumUsersCount, err := tb.store.User.PremiumUsersCount()
+	premiumUsersCount, err := tb.store.User.PremiumUsersCountMonthly()
 	if err != nil {
 	}
-	premiumUsersPercent := (premiumUsersCount / usersCount) * 100
+	premiumUsersPercent := (float32(premiumUsersCount) / float32(usersCount)) * 100
+
+	geoUsers, err := tb.store.User.GeoUsersMonthly()
+	if err != nil {
+	}
+
+	var geoUsersPercent float32
+	if usersCount != 0 {
+		geoUsersPercent = (float32(geoUsers) / float32(usersCount)) * 100
+	}
 
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("Статистика бота:\n|-Получено сообщений: %d\n|-Получено нажатий: %d\n\nСтатистика пользователей:\n|-Всего: %d\n|-Новых: %d (%d %%)\n|-Активные: %d (%d %%)\n|-Живые: %d (%d %%)\n|-Мертвые: %d (%d %%)\n|-Премиум: %d (%d %%)",
-			messagesDaily, statsDaily, usersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, activeUsersDailyPercent, aliveUsers, aliveUsersPercent, deadUsersCount, deadUsersPercent, premiumUsersCount, premiumUsersPercent),
+		Text: fmt.Sprintf("📊<b>Статистика бота:</b>\n|-Получено сообщений: <b>%d</b>\n|-Получено нажатий: <b>%d</b>\n\n👥<b>Статистика пользователей:</b>\n|-Всего: <b>%d</b>\n|-Новых: <b>%d</b> (%d %%)\n|-Активные: <b>%d</b> (%d %%)\n|-Живые: <b>%d</b> (%d %%)\n|-Мертвые: <b>%d</b> (%d %%)\n|-Премиум: <b>%d</b> (%d %%)\n\n🌎<b>Анализ аудитории:</b>\n|-🇷🇺RU: <b>%d</b> (%d %%)\n",
+			messagesDaily, statsDaily, usersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, int(activeUsersDailyPercent), aliveUsers, int(aliveUsersPercent), deadUsersCount, int(deadUsersPercent), premiumUsersCount, int(premiumUsersPercent), geoUsers, int(geoUsersPercent)),
+		ParseMode:   models.ParseModeHTML,
+		ReplyMarkup: kb,
 	})
 }
 
 func (tb tgBot) statisticsAll(ctx context.Context, b *bot.Bot, update *models.Update) {
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "За сегодня", CallbackData: statisticsDaily},
+				{Text: "За неделю", CallbackData: statisticsWeekly},
+				{Text: "За месяц", CallbackData: statisticsMonthly},
+			},
+			{
+				{Text: "За все время", CallbackData: statisticsAll},
+			},
+			{
+				{Text: "Назад", CallbackData: statisticsBack},
+				{Text: "В меню", CallbackData: menu},
+			},
+		},
+	}
 	usersCount, err := tb.store.User.AllUsersCount()
 	if err != nil {
 	}
@@ -498,7 +593,7 @@ func (tb tgBot) statisticsAll(ctx context.Context, b *bot.Bot, update *models.Up
 	if err != nil {
 		slog.Error(err.Error())
 	}
-	activeUsersDailyPercent := (activeUsersDaily / usersCount) * 100
+	activeUsersDailyPercent := (float32(activeUsersDaily) / float32(usersCount)) * 100
 
 	deadUsersCount := 0
 	for _, user := range users {
@@ -506,21 +601,32 @@ func (tb tgBot) statisticsAll(ctx context.Context, b *bot.Bot, update *models.Up
 			deadUsersCount += 1
 		}
 	}
-	deadUsersPercent := (deadUsersCount / usersCount) * 100
+	deadUsersPercent := (float32(deadUsersCount) / float32(usersCount)) * 100
 
 	aliveUsers := usersCount - deadUsersCount
-	aliveUsersPercent := (aliveUsers / usersCount) * 100
+	aliveUsersPercent := (float32(aliveUsers) / float32(usersCount)) * 100
 
 	premiumUsersCount, err := tb.store.User.PremiumUsersCount()
 	if err != nil {
 	}
-	premiumUsersPercent := (premiumUsersCount / usersCount) * 100
+	premiumUsersPercent := (float32(premiumUsersCount) / float32(usersCount)) * 100
+
+	geoUsers, err := tb.store.User.GeoUsers()
+	if err != nil {
+	}
+
+	var geoUsersPercent float32
+	if usersCount != 0 {
+		geoUsersPercent = (float32(geoUsers) / float32(usersCount)) * 100
+	}
 
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("Статистика бота:\n|-Получено сообщений: %d\n|-Получено нажатий: %d\n\nСтатистика пользователей:\n|-Всего: %d\n|-Новых: %d (%d %%)\n|-Активные: %d (%d %%)\n|-Живые: %d (%d %%)\n|-Мертвые: %d (%d %%)\n|-Премиум: %d (%d %%)",
-			messagesDaily, statsDaily, usersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, activeUsersDailyPercent, aliveUsers, aliveUsersPercent, deadUsersCount, deadUsersPercent, premiumUsersCount, premiumUsersPercent),
+		Text: fmt.Sprintf("📊<b>Статистика бота:</b>\n|-Получено сообщений: <b>%d</b>\n|-Получено нажатий: <b>%d</b>\n\n👥<b>Статистика пользователей:</b>\n|-Всего: <b>%d</b>\n|-Новых: <b>%d</b> (%d %%)\n|-Активные: <b>%d</b> (%d %%)\n|-Живые: <b>%d</b> (%d %%)\n|-Мертвые: <b>%d</b> (%d %%)\n|-Премиум: <b>%d</b> (%d %%)\n\n🌎<b>Анализ аудитории:</b>\n|-🇷🇺RU: <b>%d</b> (%d %%)\n",
+			messagesDaily, statsDaily, usersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, int(activeUsersDailyPercent), aliveUsers, int(aliveUsersPercent), deadUsersCount, int(deadUsersPercent), premiumUsersCount, int(premiumUsersPercent), geoUsers, int(geoUsersPercent)),
+		ParseMode:   models.ParseModeHTML,
+		ReplyMarkup: kb,
 	})
 }
 
@@ -597,6 +703,7 @@ func (tb tgBot) bonusInfo(ctx context.Context, b *bot.Bot, update *models.Update
 		bonus, err := tb.store.Bonus.GetOne(id)
 		if err != nil {
 		}
+		bonusCompleted, err := tb.store.Bonus.BonusesByID(bonus.ID)
 
 		isCheck := []string{}
 		if bonus.Check {
@@ -616,6 +723,7 @@ func (tb tgBot) bonusInfo(ctx context.Context, b *bot.Bot, update *models.Update
 				{
 					{Text: "Название", CallbackData: bonusesChangeName},
 					{Text: "Количество", CallbackData: bonusesChangeMaxUsers},
+					{Text: "Награда", CallbackData: bonusesChangeAward},
 				},
 				{
 					{Text: isCheck[0], CallbackData: bonusCheckTrue},
@@ -625,7 +733,7 @@ func (tb tgBot) bonusInfo(ctx context.Context, b *bot.Bot, update *models.Update
 					{Text: "Удалить из списка", CallbackData: bonusesDelete},
 				},
 				{
-					{Text: "Назад", CallbackData: bonusesBack},
+					{Text: "Назад", CallbackData: bonuses},
 					{Text: "В меню", CallbackData: menu},
 				},
 			},
@@ -634,14 +742,14 @@ func (tb tgBot) bonusInfo(ctx context.Context, b *bot.Bot, update *models.Update
 		tgChannel, err := tb.GetChannelInfo(bonus.Channel.ID)
 		if err != nil {
 			slog.Error(err.Error())
-			return
 		}
 		bonus.Channel = tgChannel
 
 		b.EditMessageText(ctx, &bot.EditMessageTextParams{
 			ChatID:      update.CallbackQuery.From.ID,
 			MessageID:   update.CallbackQuery.Message.Message.ID,
-			Text:        fmt.Sprintf("|-Канал: %d\n|-Название кнопки: %s\n|-Количество подписок: %d\n|-Создано: %s", bonus.Channel.ID, bonus.Name, bonus.MaxUsers, bonus.CreatedAt),
+			Text:        fmt.Sprintf("|-Канал: <b>%d</b>\n|-Название кнопки: <b>%s</b>\n|-Награда: <b>%d</b>\n|-Количество подписок: <b>%d/%d</b>\n|-Создано: <b>%s</b>", bonus.Channel.ID, bonus.Name, bonus.Award, bonusCompleted, bonus.MaxUsers, bonus.CreatedAt),
+			ParseMode:   models.ParseModeHTML,
 			ReplyMarkup: kb,
 		})
 	}
@@ -694,6 +802,12 @@ func (tb tgBot) bonusName(bonusScheme bonusData, msg *models.Message) {
 
 func (tb tgBot) bonusMaxUsers(bonusScheme bonusData, msg *models.Message) {
 	err := tb.store.Bonus.UpdateMaxUsers(bonusScheme.bonusID, bonusScheme.maxUsers)
+	if err != nil {
+	}
+}
+
+func (tb tgBot) bonusAward(award int, msg *models.Message) {
+	err := tb.store.Bonus.UpdateAward(bonusScheme.bonusID, award)
 	if err != nil {
 	}
 }
@@ -791,7 +905,7 @@ func (tb tgBot) premiumUsersPage(ctx context.Context, b *bot.Bot, update *models
 
 	for _, u := range uList.list[page] {
 		kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
-			{Text: fmt.Sprintf("👤#%d - @%s", u.ID, u.Username), CallbackData: usersSinge + strconv.Itoa(u.ID)},
+			{Text: fmt.Sprintf("👑 #%d - @%s", u.ID, u.Username), CallbackData: usersSinge + strconv.Itoa(u.ID)},
 		})
 	}
 
@@ -806,7 +920,7 @@ func (tb tgBot) premiumUsersPage(ctx context.Context, b *bot.Bot, update *models
 		{Text: "Выгрузить список", CallbackData: "string"},
 	})
 	kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
-		{Text: "Назад", CallbackData: "string"},
+		{Text: "Назад", CallbackData: usersPage + "1"},
 		{Text: "В меню", CallbackData: menu},
 	})
 
@@ -814,13 +928,15 @@ func (tb tgBot) premiumUsersPage(ctx context.Context, b *bot.Bot, update *models
 		b.EditMessageText(ctx, &bot.EditMessageTextParams{
 			ChatID:      update.CallbackQuery.From.ID,
 			MessageID:   update.CallbackQuery.Message.Message.ID,
-			Text:        "users page",
+			Text:        "👤 <b>Пользователи</b>",
+			ParseMode:   models.ParseModeHTML,
 			ReplyMarkup: kb,
 		})
 	} else {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID:      update.Message.From.ID,
-			Text:        "users page",
+			Text:        "👤 <b>Пользователи</b>",
+			ParseMode:   models.ParseModeHTML,
 			ReplyMarkup: kb,
 		})
 	}
@@ -832,6 +948,7 @@ func (tb tgBot) usersAdmin(ctx context.Context, b *bot.Bot, update *models.Updat
 		ShowAlert:       false,
 	})
 
+	fmt.Println(update.CallbackQuery.Data)
 	idString := strings.Split(update.CallbackQuery.Data, "@")[1]
 	id, err := strconv.Atoi(idString)
 	if err != nil {
@@ -874,7 +991,7 @@ func (tb tgBot) usersPage(ctx context.Context, b *bot.Bot, update *models.Update
 
 	for _, u := range uList.list[page] {
 		kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
-			{Text: fmt.Sprintf("👤#%d - @%s", u.ID, u.Username), CallbackData: usersSinge + strconv.Itoa(u.ID)},
+			{Text: fmt.Sprintf("👤 #%d - @%s", u.ID, u.Username), CallbackData: usersSinge + strconv.Itoa(u.ID)},
 		})
 	}
 
@@ -889,10 +1006,10 @@ func (tb tgBot) usersPage(ctx context.Context, b *bot.Bot, update *models.Update
 		{Text: "Выгрузить список", CallbackData: "string"},
 	})
 	kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
-		{Text: "👑Премиум-User", CallbackData: premiumUsersPage + "1"},
+		{Text: "👑 Премиум-User", CallbackData: premiumUsersPage + "1"},
 	})
 	kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
-		{Text: "Назад", CallbackData: "string"},
+		{Text: "Назад", CallbackData: menu},
 		{Text: "В меню", CallbackData: menu},
 	})
 
@@ -900,20 +1017,21 @@ func (tb tgBot) usersPage(ctx context.Context, b *bot.Bot, update *models.Update
 		b.EditMessageText(ctx, &bot.EditMessageTextParams{
 			ChatID:      update.CallbackQuery.From.ID,
 			MessageID:   update.CallbackQuery.Message.Message.ID,
-			Text:        "users page",
+			Text:        "👤 <b>Пользователи</b>",
+			ParseMode:   models.ParseModeHTML,
 			ReplyMarkup: kb,
 		})
 	} else {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID:      update.Message.From.ID,
-			Text:        "users page",
+			Text:        "👤 <b>Пользователи</b>",
+			ParseMode:   models.ParseModeHTML,
 			ReplyMarkup: kb,
 		})
 	}
 }
 
 func (tb tgBot) userSingle(ctx context.Context, b *bot.Bot, update *models.Update) {
-	fmt.Println(update.CallbackQuery)
 	if update.CallbackQuery != nil {
 		b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 			CallbackQueryID: update.CallbackQuery.ID,
@@ -921,10 +1039,16 @@ func (tb tgBot) userSingle(ctx context.Context, b *bot.Bot, update *models.Updat
 		})
 	}
 
+	idString := strings.Split(update.CallbackQuery.Data, "@")[1]
+	id, err := strconv.Atoi(idString)
+	if err != nil {
+	}
+	uLimits.userID = id
+
 	kb := &models.InlineKeyboardMarkup{
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
-				{Text: "Сделать администратором", CallbackData: usersMakeAdmin},
+				{Text: "Сделать администратором", CallbackData: usersMakeAdmin + strconv.Itoa(id)},
 			},
 			{
 				{Text: "Установить количество запросов", CallbackData: usersLimits},
@@ -937,21 +1061,24 @@ func (tb tgBot) userSingle(ctx context.Context, b *bot.Bot, update *models.Updat
 			},
 
 			{
-				{Text: "Назад", CallbackData: "string"},
+				{Text: "Назад", CallbackData: usersPage + "1"},
 				{Text: "В меню", CallbackData: menu},
 			},
 		},
 	}
 
-	idString := strings.Split(update.CallbackQuery.Data, "@")[1]
-	id, err := strconv.Atoi(idString)
-	if err != nil {
-	}
-	uLimits.userID = id
-
 	user, err := tb.store.User.GetByID(id)
 	if err != nil {
 		slog.Error(err.Error())
+	}
+	chat, err := tb.b.GetChat(ctx, &bot.GetChatParams{
+		ChatID: user.ID,
+	})
+	if err != nil {
+
+	}
+	if chat != nil {
+		user.Username = chat.Username
 	}
 
 	messages, err := tb.store.Message.RequestsByUser(user.ID)
@@ -970,8 +1097,9 @@ func (tb tgBot) userSingle(ctx context.Context, b *bot.Bot, update *models.Updat
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("Управление пользователем\n|-Айди: %d\n|-Юзернейм: @%s\n|-Отправлено сообщений:\nChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d\nВыполнено бонусов: %d\n|-Баланс: %d\n|-Последний актив: %s\n|-Зарегестрирован: %s\n|-Подписка: %s\n|-Дневной лимит:\nChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d\n",
+		Text: fmt.Sprintf("👤 <b>Управление пользователем</b>\n|-Айди: <b><code>%d</code></b>\n|-Юзернейм: <b><code>@%s</code></b>\n|-Отправлено сообщений:\n<pre><code>ChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d</code></pre>\n|-Выполнено бонусов: <b>%d</b>\n|-Баланс: <b>%d</b>\n|-Последний актив: <b>%s</b>\n|-Зарегестрирован: <b>%s</b>\n|-Подписка: <b>%s</b>\n|-Дневной лимит:\n<pre><code>ChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d\n</code></pre>",
 			user.ID, user.Username, messages["gpt-4o-mini"], messages["o1-mini"], messages["o1-preview"], messages["gpt-4o"], messages["dall-e-3"], messages["runware"], bonuses, user.Balance, lastMsg, user.CreatedAt, user.Subscription.Name, user.Limits.Gpt4oMini, user.Limits.O1Mini, user.Limits.O1Preview, user.Limits.Gpt4o, user.Limits.Dalle3, user.Limits.Runware),
+		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
 }
@@ -1071,7 +1199,7 @@ func (tb tgBot) referralsPage(ctx context.Context, b *bot.Bot, update *models.Up
 
 	for _, link := range rList.list[page] {
 		kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
-			{Text: fmt.Sprintf("#%d - %s", link.ID, link.Name), CallbackData: referralsSingle + strconv.Itoa(link.ID)},
+			{Text: fmt.Sprintf("🔗 #%d - %s", link.ID, link.Name), CallbackData: referralsSingle + strconv.Itoa(link.ID)},
 		})
 	}
 
@@ -1088,7 +1216,7 @@ func (tb tgBot) referralsPage(ctx context.Context, b *bot.Bot, update *models.Up
 		{Text: "+ Создать новую ссылку", CallbackData: referralsCreate},
 	})
 	kb.InlineKeyboard = append(kb.InlineKeyboard, []models.InlineKeyboardButton{
-		{Text: "Назад", CallbackData: "string"},
+		{Text: "Назад", CallbackData: menu},
 		{Text: "В меню", CallbackData: menu},
 	})
 
@@ -1096,14 +1224,16 @@ func (tb tgBot) referralsPage(ctx context.Context, b *bot.Bot, update *models.Up
 		b.EditMessageText(ctx, &bot.EditMessageTextParams{
 			ChatID:      update.CallbackQuery.From.ID,
 			MessageID:   update.CallbackQuery.Message.Message.ID,
-			Text:        "referrals page",
+			Text:        "🔗 <b>Реферальные ссылки</b>",
+			ParseMode:   models.ParseModeHTML,
 			ReplyMarkup: kb,
 		})
 
 	} else {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID:      update.Message.From.ID,
-			Text:        "referrals page",
+			Text:        "🔗 <b>Реферальные ссылки</b>",
+			ParseMode:   models.ParseModeHTML,
 			ReplyMarkup: kb,
 		})
 
@@ -1137,7 +1267,7 @@ func (tb tgBot) referralSingle(ctx context.Context, b *bot.Bot, update *models.U
 				{Text: "Удалить из списка", CallbackData: referralsDel + strconv.Itoa(id)},
 			},
 			{
-				{Text: "Назад", CallbackData: "string"},
+				{Text: "Назад", CallbackData: referralsPage + "1"},
 				{Text: "В меню", CallbackData: menu},
 			},
 		},
@@ -1177,8 +1307,8 @@ func (tb tgBot) referralSingle(ctx context.Context, b *bot.Bot, update *models.U
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("Управление ссылкой\n|-Ссылка: %s\n|-Название: %s\n\nСтатистика ссылки\n|-Всего переходов: %d\n|-Уникальных: %d (100%%)\n\nСтатистика пользователей\n|-Всего: %d\n|-Активных: %d (%d %%)\n|-Мертвых: %d (%d %%)\n|-Премиум: %d (%d %%)\n|-RTL: %d (%d %%)\n\nСтатистика проходимости\n|-Запуски: %d\n|-Выполнили бонусов %d\n|-Ушли после /start: %d",
-			ref.Link, ref.Name, usersCount, usersCount, usersCount, activeUsersCount, activeUsersPercent, deadUsersCount, deadUsersPercent, premiumUsersCount, premiumUsersCount, 0, 0, runMiniApp, 0, notRunMiniApp),
+		Text: fmt.Sprintf("🔗<b>Управление ссылкой</b>\n|-Ссылка: <b>%s <a href='%s'>ссылка</a></b>\n|-Название: <b>%s</b>\n\n📊<b>Статистика ссылки</b>\n|-Всего переходов: <b>%d</b>\n|-Уникальных: <b>%d</b> (100%%)\n\n👥<b>Статистика пользователей</b>\n|-Всего: <b>%d</b>\n|-Активных: <b>%d</b> (%d %%)\n|-Мертвых: <b>%d</b> (%d %%)\n|-Премиум: <b>%d</b> (%d %%)\n|-RTL: <b>%d</b> (%d %%)\n\n🚪<b>Статистика проходимости</b>\n|-Запуски: <b>%d</b>\n|-Выполнили бонусов <b>%d</b>\n|-Ушли после /start: <b>%d</b>",
+			ref.Code, ref.Link, ref.Name, usersCount, usersCount, usersCount, activeUsersCount, activeUsersPercent, deadUsersCount, deadUsersPercent, premiumUsersCount, premiumUsersCount, 0, 0, runMiniApp, 0, notRunMiniApp),
 		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
@@ -1234,16 +1364,15 @@ func (tb tgBot) requests(ctx context.Context, b *bot.Bot, update *models.Update)
 				{Text: "За все время", CallbackData: requestsAll},
 			},
 			{
-				{Text: "Назад", CallbackData: "string"},
+				{Text: "Назад", CallbackData: menu},
 				{Text: "В меню", CallbackData: menu},
 			},
 		},
 	}
 
-	b.EditMessageText(ctx, &bot.EditMessageTextParams{
+	b.EditMessageReplyMarkup(ctx, &bot.EditMessageReplyMarkupParams{
 		ChatID:      update.CallbackQuery.From.ID,
 		MessageID:   update.CallbackQuery.Message.Message.ID,
-		Text:        "choose",
 		ReplyMarkup: kb,
 	})
 
@@ -1266,7 +1395,7 @@ func (tb tgBot) requestsDaily(ctx context.Context, b *bot.Bot, update *models.Up
 				{Text: "За все время", CallbackData: requestsAll},
 			},
 			{
-				{Text: "Назад", CallbackData: "string"},
+				{Text: "Назад", CallbackData: menu},
 				{Text: "В меню", CallbackData: menu},
 			},
 		},
@@ -1275,8 +1404,9 @@ func (tb tgBot) requestsDaily(ctx context.Context, b *bot.Bot, update *models.Up
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("Статистика запросов к нейросетям\n\nChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d",
+		Text: fmt.Sprintf("📊<b>Cтатистика запросов к нейросетям</b>\n\n<pre><code>ChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d</code></pre>",
 			msgs["gpt-4o-mini"], msgs["o1-mini"], msgs["o1-preview"], msgs["gpt-4o"], msgs["dall-e-3"], msgs["runware"]),
+		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
 }
@@ -1297,7 +1427,7 @@ func (tb tgBot) requestsWeekly(ctx context.Context, b *bot.Bot, update *models.U
 				{Text: "За все время", CallbackData: requestsAll},
 			},
 			{
-				{Text: "Назад", CallbackData: "string"},
+				{Text: "Назад", CallbackData: menu},
 				{Text: "В меню", CallbackData: menu},
 			},
 		},
@@ -1306,8 +1436,9 @@ func (tb tgBot) requestsWeekly(ctx context.Context, b *bot.Bot, update *models.U
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("Статистика запросов к нейросетям\n\nChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d",
+		Text: fmt.Sprintf("📊<b>Cтатистика запросов к нейросетям</b>\n\n<pre><code>ChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d</code></pre>",
 			msgs["gpt-4o-mini"], msgs["o1-mini"], msgs["o1-preview"], msgs["gpt-4o"], msgs["dall-e-3"], msgs["runware"]),
+		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
 
@@ -1328,7 +1459,7 @@ func (tb tgBot) requestsMonthly(ctx context.Context, b *bot.Bot, update *models.
 				{Text: "За все время", CallbackData: requestsAll},
 			},
 			{
-				{Text: "Назад", CallbackData: "string"},
+				{Text: "Назад", CallbackData: menu},
 				{Text: "В меню", CallbackData: menu},
 			},
 		},
@@ -1336,8 +1467,9 @@ func (tb tgBot) requestsMonthly(ctx context.Context, b *bot.Bot, update *models.
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("Статистика запросов к нейросетям\n\nChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d",
+		Text: fmt.Sprintf("📊<b>Cтатистика запросов к нейросетям</b>\n\n<pre><code>ChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d</code></pre>",
 			msgs["gpt-4o-mini"], msgs["o1-mini"], msgs["o1-preview"], msgs["gpt-4o"], msgs["dall-e-3"], msgs["runware"]),
+		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
 
@@ -1359,7 +1491,7 @@ func (tb tgBot) requestsAll(ctx context.Context, b *bot.Bot, update *models.Upda
 				{Text: "За все время", CallbackData: requestsAll},
 			},
 			{
-				{Text: "Назад", CallbackData: "string"},
+				{Text: "Назад", CallbackData: menu},
 				{Text: "В меню", CallbackData: menu},
 			},
 		},
@@ -1368,8 +1500,9 @@ func (tb tgBot) requestsAll(ctx context.Context, b *bot.Bot, update *models.Upda
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("Статистика запросов к нейросетям\n\nChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d",
+		Text: fmt.Sprintf("📊<b>Cтатистика запросов к нейросетям</b>\n\n<pre><code>ChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d</code></pre>",
 			msgs["gpt-4o-mini"], msgs["o1-mini"], msgs["o1-preview"], msgs["gpt-4o"], msgs["dall-e-3"], msgs["runware"]),
+		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
 }
@@ -1386,16 +1519,12 @@ func (tb tgBot) callbackHandler(ctx context.Context, b *bot.Bot, update *models.
 		tb.statisticsMenu(ctx, b, update)
 	case statisticsDaily:
 		tb.statisticsDaily(ctx, b, update)
-		tb.statisticsMenu(ctx, b, update)
 	case statisticsWeekly:
 		tb.statisticsWeekly(ctx, b, update)
-		tb.statisticsMenu(ctx, b, update)
 	case statisticsMonthly:
 		tb.statisticsMonthly(ctx, b, update)
-		tb.statisticsMenu(ctx, b, update)
 	case statisticsAll:
 		tb.statisticsAll(ctx, b, update)
-		tb.statisticsMenu(ctx, b, update)
 	case statisticsBack:
 		tb.adminMenu(ctx, b, update)
 	case menu:
@@ -1424,7 +1553,8 @@ func (tb tgBot) callbackHandler(ctx context.Context, b *bot.Bot, update *models.
 		tb.f.Transition(update.CallbackQuery.From.ID, stateBonusName, update.CallbackQuery)
 	case bonusesChangeMaxUsers:
 		tb.f.Transition(update.CallbackQuery.From.ID, stateBonusMaxUsers, update.CallbackQuery)
-
+	case bonusesChangeAward:
+		tb.f.Transition(update.CallbackQuery.From.ID, stateBonusAward, update.CallbackQuery)
 	// users
 	case usersLimits:
 		tb.f.Transition(update.CallbackQuery.From.ID, stateUserLimitsModel, update.CallbackQuery)
@@ -1525,6 +1655,24 @@ func (tb tgBot) callbackBonusName(f *fsm.FSM, args ...any) {
 		ChatID:      callbackQuery.From.ID,
 		MessageID:   callbackQuery.Message.Message.ID,
 		Text:        "Напишите название бонуса",
+		ReplyMarkup: kb,
+	})
+}
+
+func (tb tgBot) callbackBonusAward(f *fsm.FSM, args ...any) {
+	kb := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "Отмена", CallbackData: bonuses},
+			},
+		},
+	}
+
+	callbackQuery := args[0].(*models.CallbackQuery)
+	tb.b.EditMessageText(context.Background(), &bot.EditMessageTextParams{
+		ChatID:      callbackQuery.From.ID,
+		MessageID:   callbackQuery.Message.Message.ID,
+		Text:        "Введите награду",
 		ReplyMarkup: kb,
 	})
 }
