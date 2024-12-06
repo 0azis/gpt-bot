@@ -92,7 +92,6 @@ func NewLimits(userID int, subscription string) Limits {
 	return Limits{}
 }
 
-// var paymentTypes []string = []string{"stars", "crypto"}
 var paymentAsset map[string][]string = map[string][]string{
 	"crypto":   []string{"USDT", "TON", "BTC", "ETH", "LTC", "BNB", "TRX", "USDC"},
 	"telegram": []string{"stars"},
@@ -104,6 +103,10 @@ var paymentPrices map[string]map[string]int = map[string]map[string]int{
 	"ultimate-year":  map[string]int{"telegram": 10999, "crypto": 104},
 }
 
+// var paymentLimitPrices map[string]int = map[string]int{
+// 	"gpt-4o": 10,
+// }
+
 type Payment struct {
 	UserID           int    `json:"userId"`
 	SubscriptionName string `json:"name"`
@@ -112,6 +115,12 @@ type Payment struct {
 	Amount           int    `json:"amount"`
 	End              string `json:"end"`
 }
+
+// type PaymentLimit struct {
+// 	UserID       int    `json:"userID"`
+// 	Model        string `json:"model"`
+// 	AmountLimits int    `json:"amountLimits"`
+// }
 
 func (p Payment) Valid() bool {
 	if p.UserID == 0 {
