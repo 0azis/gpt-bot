@@ -971,7 +971,7 @@ func (tb tgBot) userSingle(ctx context.Context, b *bot.Bot, update *models.Updat
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
 		Text: fmt.Sprintf("Управление пользователем\n|-Айди: %d\n|-Юзернейм: @%s\n|-Отправлено сообщений:\nChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d\nВыполнено бонусов: %d\n|-Баланс: %d\n|-Последний актив: %s\n|-Зарегестрирован: %s\n|-Подписка: %s\n|-Дневной лимит:\nChatGPT 4o-mini: %d\nChatGPT o1-mini: %d\nChatGPT o1-preview: %d\nChatGPT 4o: %d\nDall-e-3: %d\nRunware: %d\n",
-			user.ID, user.Username, messages["gpt-4o-mini"], messages["gpt-o1-mini"], messages["gpt-o1-preview"], messages["gpt-4o"], messages["dall-e-3"], messages["runware"], bonuses, user.Balance, lastMsg, user.CreatedAt, user.Subscription.Name, user.Limits.Gpt4oMini, user.Limits.O1Mini, user.Limits.O1Preview, user.Limits.Gpt4o, user.Limits.Dalle3, user.Limits.Runware),
+			user.ID, user.Username, messages["gpt-4o-mini"], messages["o1-mini"], messages["o1-preview"], messages["gpt-4o"], messages["dall-e-3"], messages["runware"], bonuses, user.Balance, lastMsg, user.CreatedAt, user.Subscription.Name, user.Limits.Gpt4oMini, user.Limits.O1Mini, user.Limits.O1Preview, user.Limits.Gpt4o, user.Limits.Dalle3, user.Limits.Runware),
 		ReplyMarkup: kb,
 	})
 }
