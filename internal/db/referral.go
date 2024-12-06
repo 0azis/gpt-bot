@@ -37,8 +37,20 @@ func (r referralDb) GetOne(code string) (int, error) {
 
 func (r referralDb) GetOneByID(id int) (domain.Referral, error) {
 	var ref domain.Referral
-	err := r.db.Get(&ref, `select * from referrals where id = ?`, id)
-	return ref, err
+	rows, err := r.db.Query(`select * from referrals where id = ?`, id)
+	if err != nil {
+		return ref, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.Scan(&ref.ID, &ref.Name, &ref.Code)
+		if err != nil {
+			return ref, err
+		}
+	}
+
+	return ref, nil
 }
 
 func (r referralDb) GetAll() ([]domain.Referral, error) {
@@ -62,20 +74,56 @@ func (r referralDb) AddUser(userID, refID int) error {
 
 func (r referralDb) CountUsers(refID int) (int, error) {
 	var countUsers int
-	err := r.db.Get(&countUsers, `select count(*) from user_referrals where referral_id = ?`, refID)
-	return countUsers, err
+	rows, err := r.db.Query(`select count(*) from user_referrals where referral_id = ?`, refID)
+	if err != nil {
+		return countUsers, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.Scan(&countUsers)
+		if err != nil {
+			return countUsers, err
+		}
+	}
+
+	return countUsers, nil
 }
 
 func (r referralDb) ActiveUsers(code string) (int, error) {
 	var countUsers int
-	err := r.db.Get(&countUsers, `select count(distinct user_referrals.user_id) from user_referrals join referrals on referrals.id = user_referrals.referral_id join chats on chats.user_id = user_referrals.user_id where referrals.code = ? having count(chats.id) >= 1`, code)
-	return countUsers, err
+	rows, err := r.db.Query(`select count(distinct user_referrals.user_id) from user_referrals join referrals on referrals.id = user_referrals.referral_id join chats on chats.user_id = user_referrals.user_id where referrals.code = ? having count(chats.id) >= 1`, code)
+	if err != nil {
+		return countUsers, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.Scan(&countUsers)
+		if err != nil {
+			return countUsers, err
+		}
+	}
+
+	return countUsers, nil
 }
 
 func (r referralDb) RunMiniApp(code string) (int, error) {
 	var countUsers int
-	err := r.db.Get(&countUsers, `select count(distinct user_referrals.user_id) from user_referrals join referrals on referrals.id = user_referrals.referral_id join stats on stats.user_id = user_referrals.user_id where referrals.code = ? having count(stats.user_id) >= 1`, code)
-	return countUsers, err
+	rows, err := r.db.Query(`select count(distinct user_referrals.user_id) from user_referrals join referrals on referrals.id = user_referrals.referral_id join stats on stats.user_id = user_referrals.user_id where referrals.code = ? having count(stats.user_id) >= 1`, code)
+	if err != nil {
+		return countUsers, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.Scan(&countUsers)
+		if err != nil {
+			return countUsers, err
+		}
+	}
+
+	return countUsers, nil
 }
 
 func (r referralDb) NotRunMiniApp(code string) (int, error) {

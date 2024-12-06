@@ -172,7 +172,7 @@ func (b bonusDb) BonusesByID(bonusID int) (int, error) {
 
 func (b bonusDb) BonusesByUser(userID int) (int, error) {
 	var bonusUser int
-	err := b.db.Get(&bonusUser, `select count(user_id) from user_bonuses where user_id = ? and awarded = 1`)
+	err := b.db.Get(&bonusUser, `select count(user_id) from user_bonuses where user_id = ? and awarded = 1`, userID)
 	return bonusUser, err
 }
 
