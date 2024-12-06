@@ -173,7 +173,7 @@ func (m message) NewMessage(c echo.Context) error {
 
 func (m message) ResendMessage(c echo.Context) error {
 	jwtUserID := utils.ExtractUserID(c)
-	messageID, err := strconv.Atoi(c.Param("message_id"))
+	messageID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return c.JSON(400, nil)
 	}
