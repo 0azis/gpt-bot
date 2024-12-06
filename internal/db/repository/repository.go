@@ -66,22 +66,23 @@ type LimitsRepository interface {
 type MessageRepository interface {
 	Create(msg domain.Message) error
 	GetByChat(userID, chatID int) ([]domain.Message, error)
+	Delete(messageID int) error
 
 	// admin
 	RequestsDaily() (domain.LimitsMap, error)
 	RequestsWeekly() (domain.LimitsMap, error)
 	RequestsMontly() (domain.LimitsMap, error)
 	RequestsAll() (domain.LimitsMap, error)
-	// UsersDaily() (int, error)
-	// UsersWeekly() (int, error)
-	// UsersMonthly() (int, error)
+	// twice
 	UsersDailyTwice() (int, error)
 	UsersWeeklyTwice() (int, error)
 	UsersMonthlyTwice() (int, error)
+	// messages
 	MessagesDaily() (int, error)
 	MessagesWeekly() (int, error)
 	MessagesMonthly() (int, error)
 	MessagesAll() (int, error)
+	// another
 	RequestsByUser(userID int) (domain.LimitsMap, error)
 	LastMessageUser(userID int) (string, error)
 }
@@ -89,7 +90,8 @@ type MessageRepository interface {
 type ChatRepository interface {
 	Create(chat domain.Chat) (int, error)
 	GetByUser(userID int) ([]domain.Chat, error)
-	GetByID(chatID int) (domain.Chat, error)
+	GetByID(userID, chatID int) (domain.Chat, error)
+	GetByMessage(userID, messageID int) (domain.Chat, error)
 	UpdateTitle(chatID int, title string) error
 }
 

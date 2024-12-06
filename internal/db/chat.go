@@ -27,9 +27,15 @@ func (c chatDb) GetByUser(userID int) ([]domain.Chat, error) {
 	return chats, err
 }
 
-func (c chatDb) GetByID(chatID int) (domain.Chat, error) {
+func (c chatDb) GetByID(userID, chatID int) (domain.Chat, error) {
 	var chat domain.Chat
-	err := c.db.Get(&chat, `select id, title, model, type from chats where id = ?`, chatID)
+	err := c.db.Get(&chat, `select id, title, model, type from chats where id = ? and user_id = ?`, chatID, userID)
+	return chat, err
+}
+
+func (c chatDb) GetByMessage(userID, messageID int) (domain.Chat, error) {
+	var chat domain.Chat
+	err := c.db.Get(&chat, `select id, title, model, type from chats join messages on messages.chat_id = chats.id where messages.id = ? and chats.user_id = ?`, messageID, userID)
 	return chat, err
 }
 

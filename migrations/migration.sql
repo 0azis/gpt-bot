@@ -99,7 +99,7 @@ CREATE TABLE user_referrals (
     user_id bigint not null,
     created_at date,
     foreign key (referral_id) references referrals (id) on delete cascade,
-    foreign key (user_id) references users (id) on delete no action,
+    foreign key (user_id) references users (id) on delete cascade,
     primary key (referral_id, user_id)
 );
 

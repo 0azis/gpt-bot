@@ -22,6 +22,11 @@ func (m messageDb) GetByChat(userID, chatID int) ([]domain.Message, error) {
 	return messages, err
 }
 
+func (m messageDb) Delete(messageID int) error {
+	_, err := m.db.Exec(`delete from messages where id = ?`, messageID)
+	return err
+}
+
 func (m messageDb) RequestsDaily() (domain.LimitsMap, error) {
 	modelsCount := domain.LimitsMap{}
 	rows, err := m.db.Query(`select distinct chats.id, chats.model from messages join chats on chats.id = messages.chat_id where date(created_at) >= curdate()`)

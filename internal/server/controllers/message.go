@@ -18,6 +18,7 @@ const uploadsRoute = "https://api.mywebai.space/api/v1/uploads/"
 type messageControllers interface {
 	NewMessage(c echo.Context) error
 	GetMessages(c echo.Context) error
+	ResendMessage(c echo.Context) error
 
 	modelAnswer(userID int, store db.Store, chat domain.Chat, msg []domain.Message) (string, error)
 }
@@ -93,7 +94,7 @@ func (m message) NewMessage(c echo.Context) error {
 
 		isNewChat = true
 	} else {
-		chatDb, err := m.store.Chat.GetByID(paramInt)
+		chatDb, err := m.store.Chat.GetByID(jwtUserID, paramInt)
 		if errors.Is(err, sql.ErrNoRows) {
 			return c.JSON(404, nil)
 		}
@@ -168,6 +169,54 @@ func (m message) NewMessage(c echo.Context) error {
 	} else {
 		return c.JSON(200, answer)
 	}
+}
+
+func (m message) ResendMessage(c echo.Context) error {
+	jwtUserID := utils.ExtractUserID(c)
+	messageID, err := strconv.Atoi(c.Param("message_id"))
+	if err != nil {
+		return c.JSON(400, nil)
+	}
+	chat, err := m.store.Chat.GetByMessage(jwtUserID, messageID)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
+	}
+
+	modelLimits, err := m.store.Limits.GetLimitsByModel(jwtUserID, chat.Model)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
+	}
+	if modelLimits == 0 {
+		return c.JSON(403, nil)
+	}
+
+	err = m.store.Limits.Reduce(jwtUserID, chat.Model)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
+	}
+
+	err = m.store.Message.Delete(messageID)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
+	}
+
+	messages, err := m.store.Message.GetByChat(jwtUserID, chat.ID)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
+	}
+
+	answer, err := m.modelAnswer(jwtUserID, m.store, chat, messages)
+	if err != nil {
+		slog.Error(err.Error())
+		return c.JSON(500, nil)
+	}
+
+	return c.JSON(200, answer)
 }
 
 func (m message) GetMessages(c echo.Context) error {
