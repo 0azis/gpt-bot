@@ -151,55 +151,106 @@ func (tb tgBot) adminHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 
 	premiumUsers, err := tb.store.User.PremiumUsersCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
+
 	}
 	statsDaily, err := tb.store.Stat.Daily()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
+
 	}
 	statsMonthly, err := tb.store.Stat.Monthly()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
+
 	}
 	statsAll, err := tb.store.Stat.All()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	bonusesDaily, err := tb.store.Bonus.DailyBonusesCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	bonusesMonthly, err := tb.store.Bonus.MonthlyBonusesCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	bonusesAll, err := tb.store.Bonus.AllBonusesCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	usersDaily, err := tb.store.User.DailyUsersCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	usersMonthly, err := tb.store.User.MonthlyUsersCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	usersAll, err := tb.store.User.AllUsersCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	usersReferredDaily, err := tb.store.User.DailyUsersReferred()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	usersReferredMonthly, err := tb.store.User.MonthlyUsersReferred()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	usersReferredAll, err := tb.store.User.AllUsersReferred()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	referralsUsersAll, err := tb.store.Referral.AllUsers()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	referralUsersDaily, err := tb.store.Referral.DailyUsers()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	referralUsersMonthly, err := tb.store.Referral.MonthlyUsers()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	b.SendMessage(ctx, &bot.SendMessageParams{
@@ -228,56 +279,107 @@ func (tb tgBot) adminMenu(ctx context.Context, b *bot.Bot, update *models.Update
 	}
 	premiumUsers, err := tb.store.User.PremiumUsersCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	statsDaily, err := tb.store.Stat.Daily()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	statsMonthly, err := tb.store.Stat.Monthly()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	statsAll, err := tb.store.Stat.All()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	bonusesDaily, err := tb.store.Bonus.DailyBonusesCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
+
 	}
+
 	bonusesMonthly, err := tb.store.Bonus.MonthlyBonusesCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	bonusesAll, err := tb.store.Bonus.AllBonusesCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	usersDaily, err := tb.store.User.DailyUsersCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	usersMonthly, err := tb.store.User.MonthlyUsersCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	usersAll, err := tb.store.User.AllUsersCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	usersReferredDaily, err := tb.store.User.DailyUsersReferred()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	usersReferredMonthly, err := tb.store.User.MonthlyUsersReferred()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	usersReferredAll, err := tb.store.User.AllUsersReferred()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	referralsUsersAll, err := tb.store.Referral.AllUsers()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	referralUsersDaily, err := tb.store.Referral.DailyUsers()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	referralUsersMonthly, err := tb.store.Referral.MonthlyUsers()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
+
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:      update.CallbackQuery.From.ID,
 		MessageID:   update.CallbackQuery.Message.Message.ID,
@@ -332,18 +434,29 @@ func (tb tgBot) statisticsDaily(ctx context.Context, b *bot.Bot, update *models.
 
 	dailyUsersCount, err := tb.store.User.DailyUsersCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 
 	}
 	messagesDaily, err := tb.store.Message.MessagesDaily()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	statsDaily, err := tb.store.Stat.Daily()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	dailyUsers, err := tb.store.User.DailyUsers()
 	if err != nil {
 		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	newDailyUsers := dailyUsersCount
@@ -352,6 +465,8 @@ func (tb tgBot) statisticsDaily(ctx context.Context, b *bot.Bot, update *models.
 	activeUsersDaily, err := tb.store.User.ActiveUsersDaily()
 	if err != nil {
 		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	var activeUsersDailyPercent float32
@@ -379,6 +494,9 @@ func (tb tgBot) statisticsDaily(ctx context.Context, b *bot.Bot, update *models.
 
 	premiumUsersCount, err := tb.store.User.PremiumUsersCountDaily()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	var premiumUsersPercent float32
@@ -388,6 +506,10 @@ func (tb tgBot) statisticsDaily(ctx context.Context, b *bot.Bot, update *models.
 
 	geoUsers, err := tb.store.User.GeoUsersDaily()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
+
 	}
 	var geoUsersPercent float32
 	if dailyUsersCount != 0 {
@@ -423,16 +545,28 @@ func (tb tgBot) statisticsWeekly(ctx context.Context, b *bot.Bot, update *models
 	}
 	usersCount, err := tb.store.User.WeeklyUsersCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	messagesDaily, err := tb.store.Message.MessagesWeekly()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	statsDaily, err := tb.store.Stat.All()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	users, err := tb.store.User.WeeklyUsers()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	newDailyUsers := usersCount
@@ -441,6 +575,8 @@ func (tb tgBot) statisticsWeekly(ctx context.Context, b *bot.Bot, update *models
 	activeUsersDaily, err := tb.store.User.ActiveUsersWeekly()
 	if err != nil {
 		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	activeUsersDailyPercent := (float32(activeUsersDaily) / float32(usersCount)) * 100
 
@@ -457,11 +593,18 @@ func (tb tgBot) statisticsWeekly(ctx context.Context, b *bot.Bot, update *models
 
 	premiumUsersCount, err := tb.store.User.PremiumUsersCountWeekly()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	premiumUsersPercent := (float32(premiumUsersCount) / float32(usersCount)) * 100
 
 	geoUsers, err := tb.store.User.GeoUsersWeekly()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
+
 	}
 
 	var geoUsersPercent float32
@@ -499,16 +642,28 @@ func (tb tgBot) statisticsMonthly(ctx context.Context, b *bot.Bot, update *model
 
 	usersCount, err := tb.store.User.MonthlyUsersCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	messagesDaily, err := tb.store.Message.MessagesMonthly()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	statsDaily, err := tb.store.Stat.Monthly()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	users, err := tb.store.User.MonthlyUsers()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	newDailyUsers := usersCount
@@ -517,6 +672,8 @@ func (tb tgBot) statisticsMonthly(ctx context.Context, b *bot.Bot, update *model
 	activeUsersDaily, err := tb.store.User.ActiveUsersMonthly()
 	if err != nil {
 		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	activeUsersDailyPercent := (float32(activeUsersDaily) / float32(usersCount)) * 100
 
@@ -533,11 +690,18 @@ func (tb tgBot) statisticsMonthly(ctx context.Context, b *bot.Bot, update *model
 
 	premiumUsersCount, err := tb.store.User.PremiumUsersCountMonthly()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	premiumUsersPercent := (float32(premiumUsersCount) / float32(usersCount)) * 100
 
 	geoUsers, err := tb.store.User.GeoUsersMonthly()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
+
 	}
 
 	var geoUsersPercent float32
@@ -574,16 +738,28 @@ func (tb tgBot) statisticsAll(ctx context.Context, b *bot.Bot, update *models.Up
 	}
 	usersCount, err := tb.store.User.AllUsersCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	messagesDaily, err := tb.store.Message.MessagesAll()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	statsDaily, err := tb.store.Stat.All()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	users, err := tb.store.User.AllUsers()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	newDailyUsers := usersCount
@@ -592,6 +768,9 @@ func (tb tgBot) statisticsAll(ctx context.Context, b *bot.Bot, update *models.Up
 	activeUsersDaily, err := tb.store.User.ActiveUsersAll()
 	if err != nil {
 		slog.Error(err.Error())
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	activeUsersDailyPercent := (float32(activeUsersDaily) / float32(usersCount)) * 100
 
@@ -608,11 +787,17 @@ func (tb tgBot) statisticsAll(ctx context.Context, b *bot.Bot, update *models.Up
 
 	premiumUsersCount, err := tb.store.User.PremiumUsersCount()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 	premiumUsersPercent := (float32(premiumUsersCount) / float32(usersCount)) * 100
 
 	geoUsers, err := tb.store.User.GeoUsers()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	var geoUsersPercent float32
@@ -634,6 +819,8 @@ func (tb tgBot) bonuses(ctx context.Context, b *bot.Bot, update *models.Update) 
 	bonuses, err := tb.store.Bonus.AllBonuses()
 	if err != nil {
 		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
+		return
 	}
 
 	kb := &models.InlineKeyboardMarkup{
@@ -644,6 +831,9 @@ func (tb tgBot) bonuses(ctx context.Context, b *bot.Bot, update *models.Update) 
 		bonusCompleted, err := tb.store.Bonus.BonusesByID(bonus.ID)
 		if err != nil {
 			// slog.Error(err.Error())
+			slog.Error(err.Error())
+			tb.informUser(ctx, update.Message.From.ID, internalError)
+			return
 		}
 
 		statusText := "🟥"
@@ -693,15 +883,15 @@ func (tb tgBot) bonusInfo(ctx context.Context, b *bot.Bot, update *models.Update
 		ShowAlert:       false,
 	})
 
-	if len(update.CallbackQuery.Data) > 1 {
-		idString := strings.Split(update.CallbackQuery.Data, "@")[1]
-		id, err := strconv.Atoi(idString)
-		if err != nil {
-
-		}
+	idString := strings.Split(update.CallbackQuery.Data, "@")
+	if len(idString) > 1 {
+		id, _ := strconv.Atoi(idString[1])
 		bonusScheme.bonusID = id
 		bonus, err := tb.store.Bonus.GetOne(id)
 		if err != nil {
+			slog.Error(err.Error())
+			tb.informUser(ctx, update.Message.From.ID, internalError)
+			return
 		}
 		bonusCompleted, err := tb.store.Bonus.BonusesByID(bonus.ID)
 
@@ -742,6 +932,8 @@ func (tb tgBot) bonusInfo(ctx context.Context, b *bot.Bot, update *models.Update
 		tgChannel, err := tb.GetChannelInfo(bonus.Channel.ID)
 		if err != nil {
 			slog.Error(err.Error())
+			tb.informUser(ctx, update.Message.From.ID, internalError)
+			return
 		}
 		bonus.Channel = tgChannel
 
@@ -758,7 +950,8 @@ func (tb tgBot) bonusInfo(ctx context.Context, b *bot.Bot, update *models.Update
 func (tb tgBot) bonusCreate(ctx context.Context, b *bot.Bot, update *models.Update) {
 	err := tb.store.Bonus.Create()
 	if err != nil {
-		tb.informUser(ctx, update.CallbackQuery.From.ID, internalError)
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.Message.From.ID, internalError)
 		return
 	}
 }
@@ -766,6 +959,9 @@ func (tb tgBot) bonusCreate(ctx context.Context, b *bot.Bot, update *models.Upda
 func (tb tgBot) bonusUpdate(bonusScheme bonusData, msg *models.Message) {
 	err := tb.store.Bonus.UpdateChannel(bonusScheme.bonusID, int(bonusScheme.channelID), bonusScheme.link)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), msg.From.ID, internalError)
+		return
 	}
 	tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
 		ChatID: msg.From.ID,
@@ -777,6 +973,8 @@ func (tb tgBot) bonusDelete(ctx context.Context, b *bot.Bot, update *models.Upda
 	err := tb.store.Bonus.Delete(bonusScheme.bonusID)
 	if err != nil {
 		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 }
 
@@ -785,11 +983,15 @@ func (tb tgBot) bonusCheck(status bool, update *models.Update) {
 		err := tb.store.Bonus.UpdateStatus(bonusScheme.bonusID, true)
 		if err != nil {
 			slog.Error(err.Error())
+			tb.informUser(context.Background(), update.Message.From.ID, internalError)
+			return
 		}
 	} else {
 		err := tb.store.Bonus.UpdateStatus(bonusScheme.bonusID, false)
 		if err != nil {
 			slog.Error(err.Error())
+			tb.informUser(context.Background(), update.Message.From.ID, internalError)
+			return
 		}
 	}
 }
@@ -797,18 +999,28 @@ func (tb tgBot) bonusCheck(status bool, update *models.Update) {
 func (tb tgBot) bonusName(bonusScheme bonusData, msg *models.Message) {
 	err := tb.store.Bonus.UpdateName(bonusScheme.bonusID, bonusScheme.name)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), msg.From.ID, internalError)
+		return
 	}
 }
 
 func (tb tgBot) bonusMaxUsers(bonusScheme bonusData, msg *models.Message) {
 	err := tb.store.Bonus.UpdateMaxUsers(bonusScheme.bonusID, bonusScheme.maxUsers)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), msg.From.ID, internalError)
+		return
 	}
 }
 
 func (tb tgBot) bonusAward(award int, msg *models.Message) {
 	err := tb.store.Bonus.UpdateAward(bonusScheme.bonusID, award)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), msg.From.ID, internalError)
+		return
+
 	}
 }
 
@@ -816,6 +1028,8 @@ func (tb tgBot) users(ctx context.Context, b *bot.Bot, update *models.Update) {
 	users, err := tb.store.User.AllUsers()
 	if err != nil {
 		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 
 	uList.list = map[int][]domain.User{}
@@ -833,6 +1047,8 @@ func (tb tgBot) users(ctx context.Context, b *bot.Bot, update *models.Update) {
 		})
 		if err != nil {
 			slog.Error(err.Error())
+			tb.informUser(context.Background(), update.Message.From.ID, internalError)
+			return
 		}
 
 		if chat != nil {
@@ -852,6 +1068,8 @@ func (tb tgBot) premiumUsers(ctx context.Context, b *bot.Bot, update *models.Upd
 	users, err := tb.store.User.PremiumUsers()
 	if err != nil {
 		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 
 	uList.list = map[int][]domain.User{}
@@ -869,6 +1087,8 @@ func (tb tgBot) premiumUsers(ctx context.Context, b *bot.Bot, update *models.Upd
 		})
 		if err != nil {
 			slog.Error(err.Error())
+			tb.informUser(context.Background(), update.Message.From.ID, internalError)
+			return
 		}
 
 		if chat != nil {
@@ -895,8 +1115,9 @@ func (tb tgBot) premiumUsersPage(ctx context.Context, b *bot.Bot, update *models
 	tb.premiumUsers(ctx, b, update)
 
 	pageString := strings.Split(update.CallbackQuery.Data, "@")
-	page, err := strconv.Atoi(pageString[1])
-	if err != nil {
+	var page = 1
+	if len(pageString) > 1 {
+		page, _ = strconv.Atoi(pageString[1])
 	}
 
 	kb := &models.InlineKeyboardMarkup{
@@ -948,14 +1169,19 @@ func (tb tgBot) usersAdmin(ctx context.Context, b *bot.Bot, update *models.Updat
 		ShowAlert:       false,
 	})
 
-	fmt.Println(update.CallbackQuery.Data)
-	idString := strings.Split(update.CallbackQuery.Data, "@")[1]
-	id, err := strconv.Atoi(idString)
-	if err != nil {
+	idString := strings.Split(update.CallbackQuery.Data, "@")
+	var id int
+	if len(idString) > 1 {
+		id, _ = strconv.Atoi(idString[1])
+
 	}
 
-	err = tb.store.Admin.MakeAdmin(id)
+	err := tb.store.Admin.MakeAdmin(id)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
+
 	}
 }
 
@@ -964,8 +1190,11 @@ func (tb tgBot) usersLimitsModel(ctx context.Context, b *bot.Bot, update *models
 		CallbackQueryID: update.CallbackQuery.ID,
 		ShowAlert:       false,
 	})
-	model := strings.Split(update.CallbackQuery.Data, "@")[1]
-	uLimits.model = model
+
+	model := strings.Split(update.CallbackQuery.Data, "@")
+	if len(model) > 1 {
+		uLimits.model = model[1]
+	}
 
 	tb.f.Transition(update.CallbackQuery.From.ID, stateUserLimitsAmount, update.CallbackQuery)
 }
@@ -981,8 +1210,9 @@ func (tb tgBot) usersPage(ctx context.Context, b *bot.Bot, update *models.Update
 	tb.users(ctx, b, update)
 
 	pageString := strings.Split(update.CallbackQuery.Data, "@")
-	page, err := strconv.Atoi(pageString[1])
-	if err != nil {
+	var page = 1
+	if len(pageString) > 1 {
+		page, _ = strconv.Atoi(pageString[1])
 	}
 
 	kb := &models.InlineKeyboardMarkup{
@@ -1039,9 +1269,10 @@ func (tb tgBot) userSingle(ctx context.Context, b *bot.Bot, update *models.Updat
 		})
 	}
 
-	idString := strings.Split(update.CallbackQuery.Data, "@")[1]
-	id, err := strconv.Atoi(idString)
-	if err != nil {
+	idString := strings.Split(update.CallbackQuery.Data, "@")
+	var id int
+	if len(idString) > 1 {
+		id, _ = strconv.Atoi(idString[1])
 	}
 	uLimits.userID = id
 
@@ -1070,12 +1301,16 @@ func (tb tgBot) userSingle(ctx context.Context, b *bot.Bot, update *models.Updat
 	user, err := tb.store.User.GetByID(id)
 	if err != nil {
 		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 	chat, err := tb.b.GetChat(ctx, &bot.GetChatParams{
 		ChatID: user.ID,
 	})
 	if err != nil {
-
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 	if chat != nil {
 		user.Username = chat.Username
@@ -1084,14 +1319,22 @@ func (tb tgBot) userSingle(ctx context.Context, b *bot.Bot, update *models.Updat
 	messages, err := tb.store.Message.RequestsByUser(user.ID)
 	if err != nil {
 		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 
 	bonuses, err := tb.store.Bonus.BonusesByUser(user.ID)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 
 	lastMsg, err := tb.store.Message.LastMessageUser(user.ID)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
@@ -1108,6 +1351,8 @@ func (tb tgBot) usersLimits(uLimits userLimits, msg *models.Message) {
 	err := tb.store.Limits.AddLimits(uLimits.userID, uLimits.model, uLimits.amount)
 	if err != nil {
 		slog.Error(err.Error())
+		tb.informUser(context.Background(), msg.From.ID, internalError)
+		return
 	}
 }
 
@@ -1117,7 +1362,11 @@ func (tb tgBot) usersPremium(ctx context.Context, b *bot.Bot, update *models.Upd
 		ShowAlert:       false,
 	})
 
-	subName := strings.Split(update.CallbackQuery.Data, "@")[1]
+	subNameValue := strings.Split(update.CallbackQuery.Data, "@")
+	var subName string
+	if len(subNameValue) > 1 {
+		subName = subNameValue[1]
+	}
 
 	var subscription domain.Payment
 	subscription.SubscriptionName = subName
@@ -1126,18 +1375,28 @@ func (tb tgBot) usersPremium(ctx context.Context, b *bot.Bot, update *models.Upd
 
 	err := tb.store.Subscription.Update(subscription.UserID, subscription.SubscriptionName, subscription.End)
 	if err != nil {
-
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 	diamonds, err := tb.store.Subscription.DailyDiamonds(subscription.SubscriptionName)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 	err = tb.store.User.FillBalance(subscription.UserID, diamonds)
 	if err != nil {
-
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 	limits := domain.NewLimits(subscription.UserID, subscription.SubscriptionName)
 	err = tb.store.Limits.Update(limits)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 
 	}
 
@@ -1147,6 +1406,9 @@ func (tb tgBot) usersPremium(ctx context.Context, b *bot.Bot, update *models.Upd
 func (tb tgBot) usersDiamonds(amount int, msg *models.Message) {
 	err := tb.store.User.RaiseBalance(uLimits.userID, amount)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), msg.From.ID, internalError)
+		return
 	}
 }
 
@@ -1154,6 +1416,8 @@ func (tb tgBot) referrals(ctx context.Context, b *bot.Bot, update *models.Update
 	links, err := tb.store.Referral.GetAll()
 	if err != nil {
 		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 
 	rList.list = map[int][]domain.Referral{}
@@ -1249,10 +1513,10 @@ func (tb tgBot) referralSingle(ctx context.Context, b *bot.Bot, update *models.U
 
 	tb.referrals(ctx, b, update)
 
-	idString := strings.Split(update.CallbackQuery.Data, "@")[1]
-	id, err := strconv.Atoi(idString)
-	if err != nil {
-
+	idString := strings.Split(update.CallbackQuery.Data, "@")
+	var id int
+	if len(idString) > 1 {
+		id, _ = strconv.Atoi(idString[1])
 	}
 
 	referralID = id
@@ -1275,16 +1539,25 @@ func (tb tgBot) referralSingle(ctx context.Context, b *bot.Bot, update *models.U
 
 	ref, err := tb.store.Referral.GetOneByID(id)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 	ref.SetLink()
 
 	usersCount, err := tb.store.Referral.CountUsers(ref.ID)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 
 	var activeUsersPercent int
 	activeUsersCount, err := tb.store.Referral.ActiveUsers(ref.Code)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 	if usersCount != 0 {
 		activeUsersPercent = (activeUsersCount / usersCount) * 100
@@ -1300,6 +1573,9 @@ func (tb tgBot) referralSingle(ctx context.Context, b *bot.Bot, update *models.U
 
 	runMiniApp, err := tb.store.Referral.RunMiniApp(ref.Code)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 
 	}
 	notRunMiniApp := usersCount - runMiniApp
@@ -1318,8 +1594,9 @@ func (tb tgBot) referralCreate(ctx context.Context, b *bot.Bot, update *models.U
 	err := tb.store.Referral.Create()
 	if err != nil {
 		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
-
 }
 
 func (tb tgBot) referralDelete(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -1328,27 +1605,38 @@ func (tb tgBot) referralDelete(ctx context.Context, b *bot.Bot, update *models.U
 		ShowAlert:       false,
 	})
 
-	idString := strings.Split(update.CallbackQuery.Data, "@")[1]
-	id, err := strconv.Atoi(idString)
-	if err != nil {
+	idString := strings.Split(update.CallbackQuery.Data, "@")
+	var id int
+	if len(idString) > 1 {
+		id, _ = strconv.Atoi(idString[1])
 	}
 
-	err = tb.store.Referral.Delete(id)
+	err := tb.store.Referral.Delete(id)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 
 	tb.referralsPage(ctx, b, update)
 }
 
-func (tb tgBot) referralChangeName(name string) {
+func (tb tgBot) referralChangeName(name string, msg *models.Message) {
 	err := tb.store.Referral.UpdateName(referralID, name)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), msg.From.ID, internalError)
+		return
+
 	}
 
 }
-func (tb tgBot) referralChangeCode(code string) {
+func (tb tgBot) referralChangeCode(code string, msg *models.Message) {
 	err := tb.store.Referral.UpdateCode(referralID, code)
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), msg.From.ID, internalError)
+		return
 	}
 }
 
@@ -1381,6 +1669,9 @@ func (tb tgBot) requests(ctx context.Context, b *bot.Bot, update *models.Update)
 func (tb tgBot) requestsDaily(ctx context.Context, b *bot.Bot, update *models.Update) {
 	msgs, err := tb.store.Message.RequestsDaily()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 
 	kb := &models.InlineKeyboardMarkup{
@@ -1413,6 +1704,9 @@ func (tb tgBot) requestsDaily(ctx context.Context, b *bot.Bot, update *models.Up
 func (tb tgBot) requestsWeekly(ctx context.Context, b *bot.Bot, update *models.Update) {
 	msgs, err := tb.store.Message.RequestsWeekly()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 
 	kb := &models.InlineKeyboardMarkup{
@@ -1446,6 +1740,9 @@ func (tb tgBot) requestsWeekly(ctx context.Context, b *bot.Bot, update *models.U
 func (tb tgBot) requestsMonthly(ctx context.Context, b *bot.Bot, update *models.Update) {
 	msgs, err := tb.store.Message.RequestsMontly()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 	kb := &models.InlineKeyboardMarkup{
 
@@ -1477,6 +1774,9 @@ func (tb tgBot) requestsMonthly(ctx context.Context, b *bot.Bot, update *models.
 func (tb tgBot) requestsAll(ctx context.Context, b *bot.Bot, update *models.Update) {
 	msgs, err := tb.store.Message.RequestsAll()
 	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(context.Background(), update.Message.From.ID, internalError)
+		return
 	}
 
 	kb := &models.InlineKeyboardMarkup{

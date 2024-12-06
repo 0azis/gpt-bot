@@ -573,11 +573,11 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 				tb.adminHandler(ctx, b, update)
 
 			case stateReferralName:
-				tb.referralChangeName(update.Message.Text)
+				tb.referralChangeName(update.Message.Text, update.Message)
 				tb.f.Transition(update.Message.From.ID, stateDefault)
 				tb.referralsPage(ctx, b, update)
 			case stateReferralCode:
-				tb.referralChangeCode(update.Message.Text)
+				tb.referralChangeCode(update.Message.Text, update.Message)
 				tb.f.Transition(update.Message.From.ID, stateDefault)
 				tb.referralsPage(ctx, b, update)
 
