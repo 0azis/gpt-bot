@@ -564,6 +564,7 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 				uLimits.amount = value
 				tb.usersLimits(uLimits, update.Message)
 				tb.f.Transition(update.Message.From.ID, stateDefault)
+				tb.adminHandler(ctx, b, update)
 			case stateUserDiamonds:
 				diamonds, err := strconv.Atoi(update.Message.Text)
 				if err != nil {
