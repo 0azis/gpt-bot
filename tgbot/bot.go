@@ -76,6 +76,7 @@ func New(cfg config.Telegram, store db.Store) (BotInterface, error) {
 		stateChannelLink:     tgBot.callbackChannelLink,
 		stateBonusName:       tgBot.callbackBonusName,
 		stateBonusMaxUsers:   tgBot.callbackBonusMaxUsers,
+		stateBonusAward:      tgBot.callbackBonusAward,
 
 		stateUserLimitsModel:  tgBot.callbackUserLimitsModel,
 		stateUserLimitsAmount: tgBot.callbackUserLimitsAmount,
@@ -174,56 +175,47 @@ func (tb tgBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Upd
 		adRes, err := tb.store.Referral.GetOne(*refCode)
 		if err != nil {
 			slog.Error(err.Error())
-			tb.informUser(ctx, int64(user.ID), userCreationError)
-			return
 		}
 
-		userRes, err := tb.store.User.IsUserReferred(user.ID, *refCode)
+		userRes, err := tb.store.User.OwnerOfReferralCode(*refCode)
 		if err != nil {
 			slog.Error(err.Error())
-			tb.informUser(ctx, int64(user.ID), userCreationError)
-			return
 		}
 
 		if userRes != 0 {
-			id, err := tb.store.User.IsUserReferred(user.ID, *refCode)
+			id, err := tb.store.User.IsUserReferred(user.ID)
 			if err != nil {
 				slog.Error(err.Error())
-				tb.informUser(ctx, int64(user.ID), internalError)
-				return
 			}
 			if id != 0 {
-				tb.informUser(ctx, int64(user.ID), userAlreadyReferred)
-				return
-			}
+				ownerID, err := tb.store.User.OwnerOfReferralCode(*refCode)
+				if errors.Is(err, sql.ErrNoRows) {
+					tb.informUser(ctx, int64(user.ID), referralInvalid)
+					return
+				}
+				if ownerID == user.ID {
+					tb.informUser(ctx, int64(user.ID), referralSameUser)
+					return
+				}
+				if err != nil {
+					slog.Error(err.Error())
+					tb.informUser(ctx, int64(user.ID), internalError)
+					return
+				}
 
-			ownerID, err := tb.store.User.OwnerOfReferralCode(*refCode)
-			if errors.Is(err, sql.ErrNoRows) {
-				tb.informUser(ctx, int64(user.ID), referralInvalid)
-				return
-			}
-			if ownerID == user.ID {
-				tb.informUser(ctx, int64(user.ID), referralSameUser)
-				return
-			}
-			if err != nil {
-				slog.Error(err.Error())
-				tb.informUser(ctx, int64(user.ID), internalError)
-				return
-			}
-
-			award := domain.ReferralAward
-			err = tb.store.User.RaiseBalance(ownerID, award)
-			if err != nil {
-				slog.Error(err.Error())
-				tb.informUser(ctx, int64(user.ID), internalError)
-				return
-			}
-			err = tb.store.User.SetReferredBy(user.ID, *refCode)
-			if err != nil {
-				slog.Error(err.Error())
-				tb.informUser(ctx, int64(user.ID), internalError)
-				return
+				award := domain.ReferralAward
+				err = tb.store.User.RaiseBalance(ownerID, award)
+				if err != nil {
+					slog.Error(err.Error())
+					tb.informUser(ctx, int64(user.ID), internalError)
+					return
+				}
+				err = tb.store.User.SetReferredBy(user.ID, *refCode)
+				if err != nil {
+					slog.Error(err.Error())
+					tb.informUser(ctx, int64(user.ID), internalError)
+					return
+				}
 			}
 		}
 		if adRes != 0 {
@@ -559,6 +551,12 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 				bonusScheme.maxUsers = value
 				tb.bonusMaxUsers(bonusScheme, update.Message)
 				tb.bonuses(ctx, b, update)
+			case stateBonusAward:
+				value, err := strconv.Atoi(update.Message.Text)
+				if err != nil {
+				}
+				tb.bonusAward(value, update.Message)
+				tb.bonuses(ctx, b, update)
 			case stateUserLimitsAmount:
 				value, err := strconv.Atoi(update.Message.Text)
 				if err != nil {
@@ -572,13 +570,14 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 				}
 				tb.usersDiamonds(diamonds, update.Message)
 				tb.f.Transition(update.Message.From.ID, stateDefault)
+				tb.adminHandler(ctx, b, update)
 
 			case stateReferralName:
-				tb.referralChangeName(update.Message.Text)
+				tb.referralChangeName(update.Message.Text, update.Message)
 				tb.f.Transition(update.Message.From.ID, stateDefault)
 				tb.referralsPage(ctx, b, update)
 			case stateReferralCode:
-				tb.referralChangeCode(update.Message.Text)
+				tb.referralChangeCode(update.Message.Text, update.Message)
 				tb.f.Transition(update.Message.From.ID, stateDefault)
 				tb.referralsPage(ctx, b, update)
 

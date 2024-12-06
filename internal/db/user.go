@@ -62,9 +62,9 @@ func (u userDb) SetIsNewFalse(id int) error {
 	return err
 }
 
-func (u userDb) IsUserReferred(userID int, refCode string) (int, error) {
+func (u userDb) IsUserReferred(userID int) (int, error) {
 	var id int
-	rows, err := u.db.Query(`select id from users where (referred_by = ? or referred_by != "") and id = ?`, refCode, userID)
+	rows, err := u.db.Query(`select id from users where referred_by is null and id = ?`, userID)
 	if err != nil {
 		return id, err
 	}
@@ -159,19 +159,19 @@ func (u userDb) AllUsers() ([]domain.User, error) {
 
 func (u userDb) DailyUsers() ([]domain.User, error) {
 	var users []domain.User
-	err := u.db.Get(&users, `select * from users where date(created_at) >= curdate()`)
+	err := u.db.Select(&users, `select id from users where date(created_at) >= curdate()`)
 	return users, err
 }
 
 func (u userDb) WeeklyUsers() ([]domain.User, error) {
 	var users []domain.User
-	err := u.db.Get(&users, `select * from users where date(created_at) >= date_sub(curdate(), interval dayofweek(curdate())-1 day)`)
+	err := u.db.Select(&users, `select id from users where date(created_at) >= date_sub(curdate(), interval dayofweek(curdate())-1 day)`)
 	return users, err
 }
 
 func (u userDb) MonthlyUsers() ([]domain.User, error) {
 	var users []domain.User
-	err := u.db.Get(&users, `select * from users where date(created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day)`)
+	err := u.db.Select(&users, `select id from users where date(created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day)`)
 	return users, err
 }
 
@@ -211,6 +211,23 @@ func (u userDb) PremiumUsersCount() (int, error) {
 	return premiumUsers, err
 }
 
+func (u userDb) PremiumUsersCountDaily() (int, error) {
+	var premiumUsers int
+	err := u.db.Get(&premiumUsers, `select count(*) from users join subscriptions on subscriptions.user_id = users.id where (subscriptions.name = "advanced" or subscriptions.name = "ultimate") and date(created_at) >= curdate()`)
+	return premiumUsers, err
+}
+func (u userDb) PremiumUsersCountWeekly() (int, error) {
+	var premiumUsers int
+	err := u.db.Get(&premiumUsers, `select count(*) from users join subscriptions on subscriptions.user_id = users.id where (subscriptions.name = "advanced" or subscriptions.name = "ultimate") and date(created_at) >= date_sub(curdate(), interval dayofweek(curdate())-1 day)`)
+	return premiumUsers, err
+}
+
+func (u userDb) PremiumUsersCountMonthly() (int, error) {
+	var premiumUsers int
+	err := u.db.Get(&premiumUsers, `select count(*) from users join subscriptions on subscriptions.user_id = users.id where (subscriptions.name = "advanced" or subscriptions.name = "ultimate") and date(created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day)`)
+	return premiumUsers, err
+}
+
 func (u userDb) ActiveUsersAll() (int, error) {
 	var activeUsers int
 	err := u.db.Get(&activeUsers, `select count(distinct users.id) from users join chats on chats.user_id = users.id`)
@@ -233,4 +250,28 @@ func (u userDb) ActiveUsersMonthly() (int, error) {
 	var activeUsers int
 	err := u.db.Get(&activeUsers, `select count(distinct users.id) from users join chats on chats.user_id = users.id where date(created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day)`)
 	return activeUsers, err
+}
+
+func (u userDb) GeoUsers() (int, error) {
+	var users int
+	err := u.db.Get(&users, `select count(*) from users where language_code = "ru"`)
+	return users, err
+}
+
+func (u userDb) GeoUsersDaily() (int, error) {
+	var users int
+	err := u.db.Get(&users, `select count(*) from users where language_code = "ru" and date(created_at) >= curdate()`)
+	return users, err
+}
+
+func (u userDb) GeoUsersWeekly() (int, error) {
+	var users int
+	err := u.db.Get(&users, `select count(*) from users where language_code = "ru" and date(created_at) >= date_sub(curdate(), interval dayofweek(curdate())-1 day)`)
+	return users, err
+}
+
+func (u userDb) GeoUsersMonthly() (int, error) {
+	var users int
+	err := u.db.Get(&users, `select count(*) from users where language_code = "ru" and date(created_at) >= date_sub(curdate(), interval dayofmonth(curdate())-1 day)`)
+	return users, err
 }

@@ -10,7 +10,7 @@ type UserRepository interface {
 	SetIsNewFalse(id int) error
 
 	// referral
-	IsUserReferred(userID int, refCode string) (int, error)
+	IsUserReferred(userID int) (int, error)
 	SetReferredBy(userID int, refBy string) error
 	OwnerOfReferralCode(refCode string) (int, error)
 
@@ -38,11 +38,19 @@ type UserRepository interface {
 
 	PremiumUsers() ([]domain.User, error)
 	PremiumUsersCount() (int, error)
+	PremiumUsersCountDaily() (int, error)
+	PremiumUsersCountWeekly() (int, error)
+	PremiumUsersCountMonthly() (int, error)
 
 	ActiveUsersAll() (int, error)
 	ActiveUsersDaily() (int, error)
 	ActiveUsersWeekly() (int, error)
 	ActiveUsersMonthly() (int, error)
+
+	GeoUsers() (int, error)
+	GeoUsersDaily() (int, error)
+	GeoUsersWeekly() (int, error)
+	GeoUsersMonthly() (int, error)
 }
 
 type SubscriptionRepository interface {
@@ -108,7 +116,7 @@ type BonusRepository interface {
 
 	UpdateName(id int, name string) error
 	UpdateChannel(id int, channelID int, link string) error
-	// UpdateAward(id int, award int) error
+	UpdateAward(id int, award int) error
 	UpdateStatus(id int, status bool) error
 	UpdateMaxUsers(id int, maxUsers int) error
 
