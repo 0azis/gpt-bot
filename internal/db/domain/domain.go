@@ -146,7 +146,7 @@ const PriceOfTextMessage int = 10
 const PriceOfImageMessage int = 100
 
 type Message struct {
-	ID      int    `json:"-"`
+	ID      int    `json:"id"`
 	ChatID  int    `json:"-"`
 	Content string `json:"content"`
 	Role    string `json:"role"`

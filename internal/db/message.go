@@ -18,7 +18,7 @@ func (m messageDb) Create(msg domain.Message) error {
 
 func (m messageDb) GetByChat(userID, chatID int) ([]domain.Message, error) {
 	var messages []domain.Message
-	err := m.db.Select(&messages, `select messages.content, messages.role, messages.type from messages inner join chats on chats.id = messages.chat_id where messages.chat_id = ? and chats.user_id = ?`, chatID, userID)
+	err := m.db.Select(&messages, `select messages.id, messages.content, messages.role, messages.type from messages inner join chats on chats.id = messages.chat_id where messages.chat_id = ? and chats.user_id = ?`, chatID, userID)
 	return messages, err
 }
 
