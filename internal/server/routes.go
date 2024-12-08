@@ -37,6 +37,7 @@ func chatRoutes(apiRoute *echo.Group, store db.Store) {
 	controller := controllers.NewChatControllers(store)
 
 	chat.GET("", controller.GetChats)
+	chat.DELETE("/:id", controller.Delete)
 }
 
 func messageRoutes(apiRoute *echo.Group, store db.Store, api api.Interface, savePath string) {

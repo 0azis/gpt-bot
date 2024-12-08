@@ -100,6 +100,7 @@ type ChatRepository interface {
 	GetByUser(userID int) ([]domain.Chat, error)
 	GetByID(userID, chatID int) (domain.Chat, error)
 	GetByMessage(userID, messageID int) (domain.Chat, error)
+	Delete(chatID int) error
 	UpdateTitle(chatID int, title string) error
 }
 

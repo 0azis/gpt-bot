@@ -39,6 +39,11 @@ func (c chatDb) GetByMessage(userID, messageID int) (domain.Chat, error) {
 	return chat, err
 }
 
+func (c chatDb) Delete(chatID int) error {
+	_, err := c.db.Exec("delete from chats where id = ?", chatID)
+	return err
+}
+
 func (c chatDb) UpdateTitle(chatID int, title string) error {
 	rows, err := c.db.Query(`update chats set title = ? where id = ?`, title, chatID)
 	defer rows.Close()
