@@ -4,12 +4,14 @@ import (
 	"gpt-bot/internal/db"
 	"gpt-bot/utils"
 	"log/slog"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 )
 
 type chatControllers interface {
 	GetChats(c echo.Context) error
+	Delete(c echo.Context) error
 }
 
 type chat struct {
@@ -25,6 +27,16 @@ func (ch chat) GetChats(c echo.Context) error {
 	}
 
 	return c.JSON(200, chats)
+}
+
+func (ch chat) Delete(c echo.Context) error {
+	chatID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(400, nil)
+	}
+
+	ch.store.Chat.Delete(chatID)
+	return c.JSON(200, nil)
 }
 
 func NewChatControllers(store db.Store) chatControllers {
