@@ -131,6 +131,7 @@ func (p payment) Webhook(c echo.Context) error {
 }
 
 func (p payment) YooMoneyWebhook(c echo.Context) error {
+	// code := c.QueryParam("code")
 	b, err := io.ReadAll(c.Request().Body)
 	fmt.Println(string(b), err)
 	fmt.Println(c.Request())
