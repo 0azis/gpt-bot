@@ -55,6 +55,7 @@ func paymentRoutes(apiRoute *echo.Group, store db.Store, b tgbot.BotInterface, a
 
 	payment.POST("", controller.CreateInvoiceLink, AuthMiddleware)
 	payment.POST("/webhook", controller.Webhook)
+	payment.POST("/y/webhook", controller.YooMoneyWebhook)
 }
 
 func imageRoutes(apiRoute *echo.Group, savePath string, b tgbot.BotInterface) {

@@ -113,10 +113,11 @@ type Api struct {
 	openai    string
 	runware   string
 	cryptoBot string
+	yooKassa  string
 }
 
 func (a Api) IsValid() bool {
-	return a.openai != "" && a.runware != "" && a.cryptoBot != ""
+	return a.openai != "" && a.runware != "" && a.cryptoBot != "" && a.yooKassa != ""
 }
 
 func (a Api) OpenAI() string {
@@ -131,11 +132,16 @@ func (a Api) CryptoBot() string {
 	return a.cryptoBot
 }
 
+func (a Api) YooKassa() string {
+	return a.yooKassa
+}
+
 func newApi() Api {
 	return Api{
 		openai:    getEnv("API_OPENAI_TOKEN"),
 		runware:   getEnv("API_RUNWARE_TOKEN"),
 		cryptoBot: getEnv("API_CRYPTOBOT_TOKEN"),
+		yooKassa:  getEnv("API_YOOKASSA_TOKEN"),
 	}
 }
 

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"gpt-bot/internal/api"
 	"gpt-bot/internal/db"
 	"gpt-bot/internal/db/domain"
@@ -18,6 +19,7 @@ import (
 type paymentControllers interface {
 	CreateInvoiceLink(c echo.Context) error
 	Webhook(c echo.Context) error
+	YooMoneyWebhook(c echo.Context) error
 }
 
 type payment struct {
@@ -125,6 +127,13 @@ func (p payment) Webhook(c echo.Context) error {
 	}
 
 	p.b.PaymentInfo(payment, true)
+	return c.JSON(200, nil)
+}
+
+func (p payment) YooMoneyWebhook(c echo.Context) error {
+	b, err := io.ReadAll(c.Request().Body)
+	fmt.Println(string(b), err)
+	fmt.Println(c.Request())
 	return c.JSON(200, nil)
 }
 

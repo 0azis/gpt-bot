@@ -57,6 +57,7 @@ func main() {
 
 	// init api
 	api := api.New(config.Api)
+	api.YooKassa.Auth()
 
 	// init cron manager
 	cronManager := cron.Init(store)
