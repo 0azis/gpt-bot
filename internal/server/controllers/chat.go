@@ -35,7 +35,10 @@ func (ch chat) Delete(c echo.Context) error {
 		return c.JSON(400, nil)
 	}
 
-	ch.store.Chat.Delete(chatID)
+	err = ch.store.Chat.Delete(chatID)
+	if err != nil {
+		return c.JSON(500, nil)
+	}
 	return c.JSON(200, nil)
 }
 
