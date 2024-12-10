@@ -10,6 +10,7 @@ import (
 
 type yookassaInterface interface {
 	Auth()
+	GetToken(code string) string
 }
 
 type b struct {
@@ -31,7 +32,7 @@ func newYookassaClient(token string) yookassaInterface {
 func (yc yookassaClient) Auth() {
 	data := url.Values{}
 	data.Set("client_id", yc.token)
-	data.Set("redirect_uri", "https://shit.ru/redirect")
+	data.Set("redirect_uri", "https://api.sponger-code.ru/api/v1/payment/y/webhook")
 	data.Set("response_type", "code")
 	data.Set("scope", "account-info")
 
@@ -64,6 +65,10 @@ func (yc yookassaClient) Auth() {
 	body, err := io.ReadAll(resp.Body)
 	fmt.Println(string(body), err)
 	// fmt.Println("BODY", string(res))
+}
+
+func (yc yookassaClient) GetToken(code string) string {
+	return ""
 }
 
 func checkRedirect(req *http.Request, via []*http.Request) error {
