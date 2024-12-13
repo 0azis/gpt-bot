@@ -97,7 +97,7 @@ type MessageRepository interface {
 
 type ChatRepository interface {
 	Create(chat domain.Chat) (int, error)
-	GetByUser(userID int) ([]domain.Chat, error)
+	GetByUser(userID int) ([]*domain.Chat, error)
 	GetByID(userID, chatID int) (domain.Chat, error)
 	GetByMessage(userID, messageID int) (domain.Chat, error)
 	Delete(chatID int) error

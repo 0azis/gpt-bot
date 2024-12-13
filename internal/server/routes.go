@@ -51,11 +51,15 @@ func messageRoutes(apiRoute *echo.Group, store db.Store, api api.Interface, save
 
 func paymentRoutes(apiRoute *echo.Group, store db.Store, b tgbot.BotInterface, api api.Interface) {
 	payment := apiRoute.Group("/payment")
+	yoomoney := payment.Group("/yoomoney")
 	controller := controllers.NewPaymentControllers(store, b, api)
 
 	payment.POST("", controller.CreateInvoiceLink, AuthMiddleware)
 	payment.POST("/webhook", controller.Webhook)
-	payment.POST("/y/webhook", controller.YooMoneyWebhook)
+
+	yoomoney.POST("/auth", controller.AuthYooMoney)
+	yoomoney.POST("/token", controller.TokenYooMoney)
+	yoomoney.POST("/pay", controller.CreatePayment)
 }
 
 func imageRoutes(apiRoute *echo.Group, savePath string, b tgbot.BotInterface) {

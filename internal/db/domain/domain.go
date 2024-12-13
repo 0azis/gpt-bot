@@ -34,7 +34,8 @@ type User struct {
 	IsNew        bool   `json:"isNewbie"`
 }
 
-func (u User) IsModelValid(model string) bool {
+func (u User) IsModelValid(modelID int) bool {
+	model := modelsID[modelID]
 	if !slices.Contains(subscriptionModels[u.Subscription.Name], model) {
 		return false
 	}
@@ -92,62 +93,82 @@ func NewLimits(userID int, subscription string) Limits {
 	return Limits{}
 }
 
-var paymentAsset map[string][]string = map[string][]string{
-	"crypto":   []string{"USDT", "TON", "BTC", "ETH", "LTC", "BNB", "TRX", "USDC"},
-	"telegram": []string{"stars"},
-}
+//	var paymentAsset map[string][]string = map[string][]string{
+//		"crypto":   []string{"USDT", "TON", "BTC", "ETH", "LTC", "BNB", "TRX", "USDC"},
+//		"telegram": []string{"stars"},
+//	}
 var paymentPrices map[string]map[string]int = map[string]map[string]int{
 	"advanced-month": map[string]int{"telegram": 379, "crypto": 3},
 	"advanced-year":  map[string]int{"telegram": 3299, "crypto": 30},
 	"ultimate-month": map[string]int{"telegram": 1279, "crypto": 13},
 	"ultimate-year":  map[string]int{"telegram": 10999, "crypto": 104},
 }
-
-// var paymentLimitPrices map[string]int = map[string]int{
-// 	"gpt-4o": 10,
-// }
-
-type Payment struct {
-	UserID           int    `json:"userId"`
-	SubscriptionName string `json:"name"`
-	Type             string `json:"type"`
-	Asset            string `json:"asset"`
-	Amount           int    `json:"amount"`
-	End              string `json:"end"`
+var limitPrices map[string]map[string]int = map[string]map[string]int{
+	"o1_preview":  map[string]int{"telegram": 1, "crypto": 1},
+	"gpt_4o":      map[string]int{"telegram": 1, "crypto": 1},
+	"o1_mini":     map[string]int{"telegram": 1, "crypto": 1},
+	"gpt_4o_mini": map[string]int{"telegram": 1, "crypto": 1},
+	"dall_e_3":    map[string]int{"telegram": 1, "crypto": 1},
+	"runware":     map[string]int{"telegram": 1, "crypto": 1},
 }
 
-// type PaymentLimit struct {
-// 	UserID       int    `json:"userID"`
-// 	Model        string `json:"model"`
-// 	AmountLimits int    `json:"amountLimits"`
-// }
+type Payment struct {
+	UserID int `json:"userId"`
+	// Asset  string `json:"asset"`
+	Amount int    `json:"amount"`
+	Entity string `json:"entity"`
+	Type   string `json:"type"`
+
+	SubscriptionName string `json:"name"`
+	SubscriptionEnd  string `json:"end"`
+
+	LimitModel  string `json:"model"`
+	LimitAmount int    `json:"limits"`
+}
 
 func (p Payment) Valid() bool {
 	if p.UserID == 0 {
 		return false
 	}
-	if !slices.Contains(paymentAsset[p.Type], p.Asset) {
-		return false
-	}
-	if _, ok := paymentPrices[p.SubscriptionName]; !ok {
-		return false
-	}
 
+	switch p.Entity {
+	case "subscription":
+		if _, ok := paymentPrices[p.SubscriptionName][p.Type]; !ok {
+			return false
+		}
+		if _, ok := paymentPrices[p.SubscriptionName]; !ok {
+			return false
+		}
+
+	case "limits":
+		if p.LimitAmount == 0 {
+			return false
+		}
+		_, ok := limitPrices[p.LimitModel][p.Type]
+		if !ok {
+			return false
+		}
+	}
 	return true
 }
 
 func (p *Payment) ToReadable() {
-	p.Amount = paymentPrices[p.SubscriptionName][p.Type]
+	switch p.Entity {
+	case "subscription":
+		p.Amount = paymentPrices[p.SubscriptionName][p.Type]
 
-	oldName := p.SubscriptionName
-	newName := strings.Split(oldName, "-")
-	p.SubscriptionName = newName[0]
+		oldName := p.SubscriptionName
+		newName := strings.Split(oldName, "-")
+		p.SubscriptionName = newName[0]
 
-	if newName[1] == "month" {
-		p.End = utils.AddMonth()
-	}
-	if newName[1] == "year" {
-		p.End = utils.AddYear()
+		if newName[1] == "month" {
+			p.SubscriptionEnd = utils.AddMonth()
+		}
+		if newName[1] == "year" {
+			p.SubscriptionEnd = utils.AddYear()
+		}
+	case "limits":
+		p.Amount = limitPrices[p.LimitModel][p.Type] * p.LimitAmount
 	}
 }
 
@@ -214,12 +235,42 @@ var modelNames = map[chatType][]string{
 	ChatImage: []string{"dall-e-3", "runware"},
 }
 
+var modelsID = map[int]string{
+	1: "o1-preview",
+	2: "gpt-4o",
+	3: "o1-mini",
+	4: "gpt-4o-mini",
+	5: "runware",
+	6: "dall-e-3",
+}
+
+func findModelID(model string) int {
+	for k, v := range modelsID {
+		if v == model {
+			return k
+		}
+	}
+	return 0
+}
+
 type Chat struct {
 	ID     int      `json:"id" db:"id"`
 	UserID int      `json:"-"`
 	Title  *string  `json:"title" db:"title"`
 	Model  string   `json:"-" db:"model"`
 	Type   chatType `json:"type" db:"type"`
+
+	ModelID int `json:"modelId"`
+}
+
+func (c *Chat) SetModelID() {
+	modelID := findModelID(c.Model)
+	c.ModelID = modelID
+}
+
+func (c *Chat) SetModelName() {
+	modelName := modelsID[c.ModelID]
+	c.Model = modelName
 }
 
 func (c *Chat) SetType() bool {

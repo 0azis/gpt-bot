@@ -1397,7 +1397,7 @@ func (tb tgBot) usersPremium(ctx context.Context, b *bot.Bot, update *models.Upd
 	subscription.UserID = uLimits.userID
 	subscription.ToReadable()
 
-	err := tb.store.Subscription.Update(subscription.UserID, subscription.SubscriptionName, subscription.End)
+	err := tb.store.Subscription.Update(subscription.UserID, subscription.SubscriptionName, subscription.SubscriptionEnd)
 	if err != nil {
 		slog.Error(err.Error())
 		tb.informUser(context.Background(), update.CallbackQuery.From.ID, internalError)
@@ -1444,7 +1444,7 @@ func (tb tgBot) usersPremium(ctx context.Context, b *bot.Bot, update *models.Upd
 
 	b.SendMessage(context.Background(), &bot.SendMessageParams{
 		ChatID:      subscription.UserID,
-		Text:        fmt.Sprintf("🎉 Администратор выдал вам <b>%s</b> подписку на срок до <b>%s</b>\n\n<i>Чтобы использовать ее в приложении нажмите кнопку ниже...</i>", subscription.SubscriptionName, subscription.End),
+		Text:        fmt.Sprintf("🎉 Администратор выдал вам <b>%s</b> подписку на срок до <b>%s</b>\n\n<i>Чтобы использовать ее в приложении нажмите кнопку ниже...</i>", subscription.SubscriptionName, subscription.SubscriptionEnd),
 		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})

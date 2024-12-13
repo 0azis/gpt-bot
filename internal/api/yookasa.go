@@ -1,87 +1,116 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
-	"net/url"
 )
 
 type yookassaInterface interface {
-	Auth()
+	GetAuthLink() string
 	GetToken(code string) string
-}
-
-type b struct {
-	clientID     string
-	responseType string
-	redirectURI  string
-	scope        string
-	instanceName string
+	CreatePayment(access_token string, amount int) bool
 }
 
 type yookassaClient struct {
-	token string
+	clientID    string
+	secret      string
+	redirectURI string
 }
+
+var client = &http.Client{}
 
 func newYookassaClient(token string) yookassaInterface {
-	return yookassaClient{token}
+	return yookassaClient{token, "", "https://api.sponger-code.ru/api/v1/payment/y/webhook"}
 }
 
-func (yc yookassaClient) Auth() {
-	data := url.Values{}
-	data.Set("client_id", yc.token)
-	data.Set("redirect_uri", "https://api.sponger-code.ru/api/v1/payment/y/webhook")
-	data.Set("response_type", "code")
-	data.Set("scope", "account-info")
-
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://yoomoney.ru/oauth/authorize?client_id=%s&response_type=%s&redirect_uri=%s&scope=%s", data.Get("client_id"), data.Get("response_type"), data.Get("redirect_uri"), data.Get("scope")), nil)
+func (yc yookassaClient) GetAuthLink() string {
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://yoomoney.ru/oauth/authorize?client_id=%s&response_type=code&redirect_uri=%s&scope=account-info", yc.clientID, yc.redirectURI), nil)
 	if err != nil {
 		slog.Error(err.Error())
+		return ""
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	c := &http.Client{
-		CheckRedirect: checkRedirect,
-	}
-
-	resp, err := c.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		slog.Error(err.Error())
+		return ""
 	}
+	defer resp.Body.Close()
 
-	// fmt.Println(resp.
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			fmt.Println("Ошибка при закрытии тела ответа:", err)
-		}
-	}()
-
-	// c.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-	// 	return errors.New("Redirect")
-	// }
-
-	body, err := io.ReadAll(resp.Body)
-	fmt.Println(string(body), err)
-	// fmt.Println("BODY", string(res))
+	return req.URL.String()
 }
 
 func (yc yookassaClient) GetToken(code string) string {
-	return ""
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://yoomoney.ru/oauth/token?code=%s&client_id=%s&grant_type=authorization_code&redirect_uri=%s&client_secret=%s", code, yc.clientID, yc.redirectURI, yc.secret), nil)
+	if err != nil {
+		slog.Error(err.Error())
+		return ""
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		slog.Error(err.Error())
+		return ""
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	fmt.Println(string(body))
+	if err != nil {
+		slog.Error(err.Error())
+		return ""
+	}
+
+	token := struct {
+		Value string `json:"access_token"`
+	}{}
+
+	err = json.Unmarshal(body, &token)
+	if err != nil {
+		slog.Error(err.Error())
+		return ""
+	}
+
+	return token.Value
 }
 
-func checkRedirect(req *http.Request, via []*http.Request) error {
-	fmt.Println(via[0])
-	fmt.Println("REDIRECT", req)
+func (yc yookassaClient) CreatePayment(access_token string, amount int) bool {
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://yoomoney.ru/api/request-payment?pattern_id=p2p&to=%s&amount_due=%d", "", amount), nil)
+	if err != nil {
+		slog.Error(err.Error())
+		return false
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", access_token))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	// c := &http.Client{
-	// 	CheckRedirect: checkRedirect,
-	// }
-	// resp, err := c.Do(req)
-	// if err != nil {
-	// 	slog.Error(err.Error())
-	// }
+	resp, err := client.Do(req)
+	if err != nil {
+		slog.Error(err.Error())
+		return false
+	}
+	defer resp.Body.Close()
+	fmt.Println(resp)
 
-	return nil
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		slog.Error(err.Error())
+		return false
+	}
+
+	fmt.Println(string(body))
+
+	req2, err := http.NewRequest("POST", fmt.Sprintf("https://yoomoney.ru/api/process-payment?request_id=%s", ""), nil)
+	if err != nil {
+		slog.Error(err.Error())
+		return false
+	}
+	req2.Header.Add("Authorization", fmt.Sprintf("Bearer %s", access_token))
+	req2.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	return true
 }

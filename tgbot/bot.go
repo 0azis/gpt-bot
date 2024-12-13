@@ -384,16 +384,34 @@ func (tb tgBot) getTelegramAvatar(ctx context.Context, userID int64) string {
 }
 
 func (tb tgBot) CreateInvoiceLink(payload []byte, payment domain.Payment) (string, error) {
-	link, err := tb.b.CreateInvoiceLink(context.Background(), &bot.CreateInvoiceLinkParams{
-		Title:       fmt.Sprintf("%s subscription", payment.SubscriptionName),
-		Description: "Buy subscription",
-		Payload:     string(payload),
-		Currency:    "XTR",
-		Prices: []models.LabeledPrice{
-			{Label: payment.SubscriptionName, Amount: payment.Amount},
-		},
-	})
-	return link, err
+	fmt.Println(len(payload))
+	switch payment.Entity {
+	case "subscription":
+		link, err := tb.b.CreateInvoiceLink(context.Background(), &bot.CreateInvoiceLinkParams{
+			Title:       fmt.Sprintf("%s subscription", payment.SubscriptionName),
+			Description: "Buy subscription",
+			Payload:     string(payload),
+			Currency:    "XTR",
+			Prices: []models.LabeledPrice{
+				{Label: payment.SubscriptionName, Amount: payment.Amount},
+			},
+		})
+		return link, err
+
+	case "limits":
+		fmt.Println(string(payload))
+		link, err := tb.b.CreateInvoiceLink(context.Background(), &bot.CreateInvoiceLinkParams{
+			Title:       fmt.Sprintf("%d limits to %s model", payment.LimitAmount, payment.LimitModel),
+			Description: "Buy limits",
+			Payload:     string(payload),
+			Currency:    "XTR",
+			Prices: []models.LabeledPrice{
+				{Label: payment.LimitModel, Amount: payment.Amount},
+			},
+		})
+		return link, err
+	}
+	return "", nil
 }
 
 func (tb tgBot) IsUserMember(channelID int, userID int) bool {
@@ -454,19 +472,38 @@ func (tb tgBot) informUser(ctx context.Context, userID int64, errorMsg string) {
 }
 
 func (tb tgBot) PaymentInfo(payment domain.Payment, status bool) {
-	if status {
-		tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
-			ChatID:    payment.UserID,
-			Text:      fmt.Sprintf(`Вы успешно купили подписку <b>%s</b> за <i>%d</i> звезд. Ваша подписка доступна до: %s`, payment.SubscriptionName, payment.Amount, payment.End),
-			ParseMode: models.ParseModeHTML,
-		})
-	} else {
-		tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
-			ChatID:    payment.UserID,
-			Text:      fmt.Sprintf(`Неудалось купить подписку <b>%s</b> за <i>%d</i> звезд. Попробуйте позже`, payment.SubscriptionName, payment.Amount),
-			ParseMode: models.ParseModeHTML,
-		})
+	switch payment.Entity {
+	case "subscription":
+		if status {
+			tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
+				ChatID:    payment.UserID,
+				Text:      fmt.Sprintf(`Вы успешно купили подписку <b>%s</b> за <i>%d</i> звезд. Ваша подписка доступна до: %s`, payment.SubscriptionName, payment.Amount, payment.SubscriptionEnd),
+				ParseMode: models.ParseModeHTML,
+			})
+		} else {
+			tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
+				ChatID:    payment.UserID,
+				Text:      fmt.Sprintf(`Неудалось купить подписку <b>%s</b> за <i>%d</i> звезд. Попробуйте позже`, payment.SubscriptionName, payment.Amount),
+				ParseMode: models.ParseModeHTML,
+			})
+		}
+
+	case "limits":
+		if status {
+			tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
+				ChatID:    payment.UserID,
+				Text:      fmt.Sprintf(`Вы успешно купили <b>%d</b> лимитов для модели <b>%s</b>`, payment.LimitAmount, payment.LimitModel),
+				ParseMode: models.ParseModeHTML,
+			})
+		} else {
+			tb.b.SendMessage(context.Background(), &bot.SendMessageParams{
+				ChatID:    payment.UserID,
+				Text:      fmt.Sprintf(`Неудалось купить <b>%d</b> лимитов для модели <b>%s</b>. Попробуйте позже`, payment.LimitAmount, payment.LimitModel),
+				ParseMode: models.ParseModeHTML,
+			})
+		}
 	}
+
 }
 
 func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
@@ -501,34 +538,45 @@ func (tb tgBot) defaultHandler(ctx context.Context, b *bot.Bot, update *models.U
 				tb.informUser(ctx, update.Message.From.ID, internalError)
 				return
 			}
-			err = tb.store.Subscription.Update(payment.UserID, payment.SubscriptionName, payment.End)
-			if err != nil {
-				slog.Error(err.Error())
-				tb.informUser(ctx, int64(payment.UserID), internalError)
-				return
-			}
+			switch payment.Entity {
+			case "subscription":
+				err = tb.store.Subscription.Update(payment.UserID, payment.SubscriptionName, payment.SubscriptionEnd)
+				if err != nil {
+					slog.Error(err.Error())
+					tb.informUser(ctx, int64(payment.UserID), internalError)
+					return
+				}
 
-			diamonds, err := tb.store.Subscription.DailyDiamonds(payment.SubscriptionName)
-			if err != nil {
-				slog.Error(err.Error())
-				tb.informUser(ctx, int64(payment.UserID), internalError)
+				diamonds, err := tb.store.Subscription.DailyDiamonds(payment.SubscriptionName)
+				if err != nil {
+					slog.Error(err.Error())
+					tb.informUser(ctx, int64(payment.UserID), internalError)
+					return
+				}
+				err = tb.store.User.FillBalance(payment.UserID, diamonds)
+				if err != nil {
+					slog.Error(err.Error())
+					tb.informUser(ctx, int64(payment.UserID), internalError)
+					return
+				}
+				limits := domain.NewLimits(payment.UserID, payment.SubscriptionName)
+				err = tb.store.Limits.Update(limits)
+				if err != nil {
+					slog.Error(err.Error())
+					tb.informUser(ctx, int64(payment.UserID), internalError)
+					return
+				}
+				tb.PaymentInfo(payment, true)
 				return
+			case "limits":
+				err = tb.store.Limits.AddLimits(payment.UserID, payment.LimitModel, payment.LimitAmount)
+				if err != nil {
+					slog.Error(err.Error())
+					tb.informUser(ctx, int64(payment.UserID), internalError)
+					return
+				}
+
 			}
-			err = tb.store.User.FillBalance(payment.UserID, diamonds)
-			if err != nil {
-				slog.Error(err.Error())
-				tb.informUser(ctx, int64(payment.UserID), internalError)
-				return
-			}
-			limits := domain.NewLimits(payment.UserID, payment.SubscriptionName)
-			err = tb.store.Limits.Update(limits)
-			if err != nil {
-				slog.Error(err.Error())
-				tb.informUser(ctx, int64(payment.UserID), internalError)
-				return
-			}
-			tb.PaymentInfo(payment, true)
-			return
 		}
 		if update.Message.Text != "" {
 			switch tb.f.Current(update.Message.From.ID) {
