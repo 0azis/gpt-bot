@@ -44,13 +44,17 @@ func (m message) NewMessage(c echo.Context) error {
 	if model == "" {
 		return c.JSON(400, nil)
 	}
+	modelID, err := strconv.Atoi(model)
+	if err != nil {
+		return c.JSON(400, nil)
+	}
 
 	user, err := m.store.User.GetByID(jwtUserID)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
 	}
-	if !user.IsModelValid(model) {
+	if !user.IsModelValid(modelID) {
 		return c.JSON(403, nil)
 	}
 
@@ -70,9 +74,10 @@ func (m message) NewMessage(c echo.Context) error {
 	var isNewChat bool
 	if paramInt == 0 {
 		newChat := domain.Chat{
-			UserID: jwtUserID,
-			Model:  model,
+			UserID:  jwtUserID,
+			ModelID: modelID,
 		}
+		newChat.SetModelName()
 		if ok := newChat.SetType(); !ok {
 			return c.JSON(400, nil)
 		}
@@ -130,7 +135,7 @@ func (m message) NewMessage(c echo.Context) error {
 	// 	return c.JSON(403, nil)
 	// }
 
-	modelLimits, err := m.store.Limits.GetLimitsByModel(jwtUserID, model)
+	modelLimits, err := m.store.Limits.GetLimitsByModel(jwtUserID, chat.Model)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
@@ -139,7 +144,7 @@ func (m message) NewMessage(c echo.Context) error {
 		return c.JSON(403, nil)
 	}
 
-	err = m.store.Limits.Reduce(jwtUserID, model)
+	err = m.store.Limits.Reduce(jwtUserID, chat.Model)
 	if err != nil {
 		slog.Error(err.Error())
 		return c.JSON(500, nil)
