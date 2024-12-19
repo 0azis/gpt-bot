@@ -519,8 +519,9 @@ func (tb tgBot) statisticsDaily(ctx context.Context, b *bot.Bot, update *models.
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("📊<b>Статистика бота:</b>\n|-Получено сообщений: <b>%d</b>\n|-Получено нажатий: <b>%d</b>\n\n👥<b>Статистика пользователей:</b>\n|-Всего: <b>%d</b>\n|-Новых: <b>%d</b> (%d %%)\n|-Активные: <b>%d</b> (%d %%)\n|-Живые: <b>%d</b> (%d %%)\n|-Мертвые: <b>%d</b> (%d %%)\n|-Премиум: <b>%d</b> (%d %%)\n\n🌎<b>Анализ аудитории:</b>\n|-🇷🇺RU: <b>%d</b> (%d %%)\n",
-			messagesDaily, statsDaily, dailyUsersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, int(activeUsersDailyPercent), aliveUsers, int(aliveUsersPercent), deadUsersCount, int(deadUsersPercent), premiumUsersCount, int(premiumUsersPercent), geoUsers, int(geoUsersPercent)),
+
+		Text: fmt.Sprintf("📊<b>Статистика бота:</b>\n|-Получено сообщений: <b>%d</b>\n|-Получено нажатий: <b>%d</b>\n\n👥<b>Статистика пользователей:</b>\n|-Всего: <b>%d</b>\n|-Новых: <b>%d</b> (%d %%)\n|-Активные: <b>%d</b> (%d %%)\n|-Живые: <b>%d</b> (%d %%)\n|-Мертвые: <b>%d</b> (%d %%)\n|-Премиум: <b>%d</b> (%d %%)\n|-Сумма продаж: <b>%d руб</b>\n\n🌎<b>Анализ аудитории:</b>\n|-🇷🇺RU: <b>%d</b> (%d %%)\n",
+			messagesDaily, statsDaily, dailyUsersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, int(activeUsersDailyPercent), aliveUsers, int(aliveUsersPercent), deadUsersCount, int(deadUsersPercent), premiumUsersCount, int(premiumUsersPercent), 0, geoUsers, int(geoUsersPercent)),
 		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
@@ -615,8 +616,9 @@ func (tb tgBot) statisticsWeekly(ctx context.Context, b *bot.Bot, update *models
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("📊<b>Статистика бота:</b>\n|-Получено сообщений: <b>%d</b>\n|-Получено нажатий: <b>%d</b>\n\n👥<b>Статистика пользователей:</b>\n|-Всего: <b>%d</b>\n|-Новых: <b>%d</b> (%d %%)\n|-Активные: <b>%d</b> (%d %%)\n|-Живые: <b>%d</b> (%d %%)\n|-Мертвые: <b>%d</b> (%d %%)\n|-Премиум: <b>%d</b> (%d %%)\n\n🌎<b>Анализ аудитории:</b>\n|-🇷🇺RU: <b>%d</b> (%d %%)\n",
-			messagesDaily, statsDaily, usersCount, newDailyUsers, int(newDailyUsersPercent), activeUsersDaily, int(activeUsersDailyPercent), aliveUsers, int(aliveUsersPercent), deadUsersCount, int(deadUsersPercent), premiumUsersCount, int(premiumUsersPercent), geoUsers, int(geoUsersPercent)),
+		Text: fmt.Sprintf("📊<b>Статистика бота:</b>\n|-Получено сообщений: <b>%d</b>\n|-Получено нажатий: <b>%d</b>\n\n👥<b>Статистика пользователей:</b>\n|-Всего: <b>%d</b>\n|-Новых: <b>%d</b> (%d %%)\n|-Активные: <b>%d</b> (%d %%)\n|-Живые: <b>%d</b> (%d %%)\n|-Мертвые: <b>%d</b> (%d %%)\n|-Премиум: <b>%d</b> (%d %%)\n|-Сумма продаж: <b>%d руб</b>\n\n🌎<b>Анализ аудитории:</b>\n|-🇷🇺RU: <b>%d</b> (%d %%)\n",
+			messagesDaily, statsDaily, usersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, int(activeUsersDailyPercent), aliveUsers, int(aliveUsersPercent), deadUsersCount, int(deadUsersPercent), premiumUsersCount, int(premiumUsersPercent), 0, geoUsers, int(geoUsersPercent)),
+
 		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
@@ -712,8 +714,9 @@ func (tb tgBot) statisticsMonthly(ctx context.Context, b *bot.Bot, update *model
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("📊<b>Статистика бота:</b>\n|-Получено сообщений: <b>%d</b>\n|-Получено нажатий: <b>%d</b>\n\n👥<b>Статистика пользователей:</b>\n|-Всего: <b>%d</b>\n|-Новых: <b>%d</b> (%d %%)\n|-Активные: <b>%d</b> (%d %%)\n|-Живые: <b>%d</b> (%d %%)\n|-Мертвые: <b>%d</b> (%d %%)\n|-Премиум: <b>%d</b> (%d %%)\n\n🌎<b>Анализ аудитории:</b>\n|-🇷🇺RU: <b>%d</b> (%d %%)\n",
-			messagesDaily, statsDaily, usersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, int(activeUsersDailyPercent), aliveUsers, int(aliveUsersPercent), deadUsersCount, int(deadUsersPercent), premiumUsersCount, int(premiumUsersPercent), geoUsers, int(geoUsersPercent)),
+		Text: fmt.Sprintf("📊<b>Статистика бота:</b>\n|-Получено сообщений: <b>%d</b>\n|-Получено нажатий: <b>%d</b>\n\n👥<b>Статистика пользователей:</b>\n|-Всего: <b>%d</b>\n|-Новых: <b>%d</b> (%d %%)\n|-Активные: <b>%d</b> (%d %%)\n|-Живые: <b>%d</b> (%d %%)\n|-Мертвые: <b>%d</b> (%d %%)\n|-Премиум: <b>%d</b> (%d %%)\n|-Сумма продаж: <b>%d руб</b>\n\n🌎<b>Анализ аудитории:</b>\n|-🇷🇺RU: <b>%d</b> (%d %%)\n",
+			messagesDaily, statsDaily, usersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, int(activeUsersDailyPercent), aliveUsers, int(aliveUsersPercent), deadUsersCount, int(deadUsersPercent), premiumUsersCount, int(premiumUsersPercent), 0, geoUsers, int(geoUsersPercent)),
+
 		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})
@@ -805,11 +808,27 @@ func (tb tgBot) statisticsAll(ctx context.Context, b *bot.Bot, update *models.Up
 		geoUsersPercent = (float32(geoUsers) / float32(usersCount)) * 100
 	}
 
+	var sum int
+	premiumUsers, err := tb.store.User.PremiumUsers()
+	if err != nil {
+		slog.Error(err.Error())
+		tb.informUser(ctx, update.CallbackQuery.From.ID, internalError)
+		return
+	}
+
+	for _, premUser := range premiumUsers {
+		if premUser.Subscription.Name == "advanced" {
+			sum += domain.PaymentPrices[premUser.Subscription.Name+"-month"]["rub"]
+		} else {
+			sum += domain.PaymentPrices["ultimate-month"]["rub"]
+		}
+	}
+
 	b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.From.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text: fmt.Sprintf("📊<b>Статистика бота:</b>\n|-Получено сообщений: <b>%d</b>\n|-Получено нажатий: <b>%d</b>\n\n👥<b>Статистика пользователей:</b>\n|-Всего: <b>%d</b>\n|-Новых: <b>%d</b> (%d %%)\n|-Активные: <b>%d</b> (%d %%)\n|-Живые: <b>%d</b> (%d %%)\n|-Мертвые: <b>%d</b> (%d %%)\n|-Премиум: <b>%d</b> (%d %%)\n\n🌎<b>Анализ аудитории:</b>\n|-🇷🇺RU: <b>%d</b> (%d %%)\n",
-			messagesDaily, statsDaily, usersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, int(activeUsersDailyPercent), aliveUsers, int(aliveUsersPercent), deadUsersCount, int(deadUsersPercent), premiumUsersCount, int(premiumUsersPercent), geoUsers, int(geoUsersPercent)),
+		Text: fmt.Sprintf("📊<b>Статистика бота:</b>\n|-Получено сообщений: <b>%d</b>\n|-Получено нажатий: <b>%d</b>\n\n👥<b>Статистика пользователей:</b>\n|-Всего: <b>%d</b>\n|-Новых: <b>%d</b> (%d %%)\n|-Активные: <b>%d</b> (%d %%)\n|-Живые: <b>%d</b> (%d %%)\n|-Мертвые: <b>%d</b> (%d %%)\n|-Премиум: <b>%d</b> (%d %%)\n|-Сумма продаж: <b>%d руб</b>\n\n🌎<b>Анализ аудитории:</b>\n|-🇷🇺RU: <b>%d</b> (%d %%)\n",
+			messagesDaily, statsDaily, usersCount, newDailyUsers, newDailyUsersPercent, activeUsersDaily, int(activeUsersDailyPercent), aliveUsers, int(aliveUsersPercent), deadUsersCount, int(deadUsersPercent), premiumUsersCount, int(premiumUsersPercent), sum, geoUsers, int(geoUsersPercent)),
 		ParseMode:   models.ParseModeHTML,
 		ReplyMarkup: kb,
 	})

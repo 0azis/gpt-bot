@@ -97,11 +97,11 @@ func NewLimits(userID int, subscription string) Limits {
 //		"crypto":   []string{"USDT", "TON", "BTC", "ETH", "LTC", "BNB", "TRX", "USDC"},
 //		"telegram": []string{"stars"},
 //	}
-var paymentPrices map[string]map[string]int = map[string]map[string]int{
-	"advanced-month": map[string]int{"telegram": 379, "crypto": 3},
-	"advanced-year":  map[string]int{"telegram": 3299, "crypto": 30},
-	"ultimate-month": map[string]int{"telegram": 1279, "crypto": 13},
-	"ultimate-year":  map[string]int{"telegram": 10999, "crypto": 104},
+var PaymentPrices map[string]map[string]int = map[string]map[string]int{
+	"advanced-month": map[string]int{"telegram": 379, "crypto": 3, "rub": 1},
+	"advanced-year":  map[string]int{"telegram": 3299, "crypto": 30, "rub": 1},
+	"ultimate-month": map[string]int{"telegram": 1279, "crypto": 13, "rub": 1},
+	"ultimate-year":  map[string]int{"telegram": 10999, "crypto": 104, "rub": 1},
 }
 var limitPrices map[string]map[string]int = map[string]map[string]int{
 	"o1_preview":  map[string]int{"telegram": 1, "crypto": 1},
@@ -133,10 +133,10 @@ func (p Payment) Valid() bool {
 
 	switch p.Entity {
 	case "subscription":
-		if _, ok := paymentPrices[p.SubscriptionName][p.Type]; !ok {
+		if _, ok := PaymentPrices[p.SubscriptionName][p.Type]; !ok {
 			return false
 		}
-		if _, ok := paymentPrices[p.SubscriptionName]; !ok {
+		if _, ok := PaymentPrices[p.SubscriptionName]; !ok {
 			return false
 		}
 
@@ -155,7 +155,7 @@ func (p Payment) Valid() bool {
 func (p *Payment) ToReadable() {
 	switch p.Entity {
 	case "subscription":
-		p.Amount = paymentPrices[p.SubscriptionName][p.Type]
+		p.Amount = PaymentPrices[p.SubscriptionName][p.Type]
 
 		oldName := p.SubscriptionName
 		newName := strings.Split(oldName, "-")
